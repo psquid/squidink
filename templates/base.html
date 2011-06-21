@@ -34,8 +34,12 @@
                             <label for="password">Password</label>
                             <input type="password" name="password" />
                         </p>
-                        <p><input type="submit" value="Login" class="submit" /></p>
+                        <p>
+                            <label for="submit"></label>
+                            <input type="submit" value="Login" name="submit" />
+                        </p>
                     </form>
+                    <p class="right">or <a href="/user/new">register a new account</a></p>
                 </section>
             {% else %}
                 <section id="logout">

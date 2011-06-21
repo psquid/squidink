@@ -5,11 +5,12 @@
 {% if error %}
 <p class="error">{{ error }}</p>
 {% endif %}
-<form action="{{ action_url }}" method="post">
+<form action="{{ action_url }}" method="post" class="semifill">
     <p><label for="username">Username</label>
-    <input type="text" name="username" /></p>
+    <input type="text" name="username" value="{{ preset_username }}" /></p>
     <p><label for="password">Password</label>
     <input type="password" name="password" /></p>
-    <p><input type="submit" value="{{ action_name }}" /></p>
+    <p><label for="submit"></label>
+    <input type="submit" value="{{ action_name }}" name="submit" /></p>
 </form>
 {% endblock %}

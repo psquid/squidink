@@ -73,7 +73,7 @@ article.post, article.page {
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
-    padding: 3px 20px 8px;
+    padding: 3px 20px 10px;
 }
 article.post:not(:first-child), #posts nav {
     margin-top: 18px;
@@ -89,7 +89,7 @@ article.post:not(:first-child), #posts nav {
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
-    padding: 0px 20px 8px;
+    padding: 0px 20px 10px;
     position: relative;
 }
     #posts nav .nav_older {
@@ -102,7 +102,7 @@ article.post:not(:first-child), #posts nav {
     }
 
 footer {
-    margin: 18px 0;
+    margin: 20px 0 18px;
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
@@ -144,24 +144,56 @@ h3 {
     padding-bottom: 8px;
 }
 
-p, img {
+p, img, code {
     padding-bottom: 9px;
 }
 
 form {
-    padding-bottom: 20px;
-}
-
-label, form p {
-    padding: 2px 0;
-}
-
-input {
     width: 100%;
+    display: table;
+    padding-bottom: 9px;
+}
+
+form p {
+    width: 75%;
+    padding: 2px 0;
+    display: table-row;
+}
+
+form label {
+    display: table-cell;
+    text-align: right;
+    padding: 0 7px 0 0;
+    width: 15%;
+}
+
+input, textarea {
+    min-width: 100%;
+    width: 100%;
+    display: table-cell;
+}
+
+textarea {
+    min-height: 130px;
+}
+
+form.semifill
+{
+    width: 50%;
 }
 
 input.submit {
     margin: 6px 0 2px;
+}
+
+p.left {
+    text-align: left;
+}
+p.center {
+    text-align: center;
+}
+p.right {
+    text-align: right;
 }
 
 p.error {
