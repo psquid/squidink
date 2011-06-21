@@ -62,7 +62,7 @@ nav ul li a:link, nav ul li a:visited {
     aside {
         display: table-cell;
         width: 270px;
-        padding: 5px 20px 5px;
+        padding: 8px 20px 5px;
         border-radius: 10px;
         -moz-border-radius: 10px;
         -webkit-border-radius: 10px;
@@ -212,6 +212,7 @@ a img:hover {
 form {
     width: 100%;
     display: table;
+    padding-top: 5px;
     padding-bottom: 9px;
 }
 
