@@ -144,8 +144,35 @@ h3 {
     padding-bottom: 8px;
 }
 
-p, img, code {
+ul, ol {
+    list-style-position: inside;
+}
+
+p, img {
     padding-bottom: 9px;
+}
+
+code, pre {
+    padding-bottom: 5px;
+    font: 12px/150% Inconsolata, monospace;
+}
+
+blockquote, q {
+    padding-left: 8px;
+    border-left: 5px solid #3f3f3f;
+    margin-bottom: 4px;
+}
+blockquote p, q {
+    padding: 2px 0 4px;
+}
+blockquote, q {
+    color: #909090;
+}
+blockquote blockquote, q q {
+    color: #606060;
+}
+blockquote blockquote blockquote, q q q {
+    color: #505050;
 }
 
 img, object {
@@ -167,7 +194,7 @@ form {
     padding-bottom: 9px;
 }
 
-form p {
+form > p {
     width: 75%;
     padding: 2px 0;
     display: table-row;
