@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{% if title == "" %}{{ site_name }}{% else %}{{ title }} :: {{ site_name }}{% endif %}{% endblock %}
+{% block content_body %}
+<section id="posts">
+    {% for post in posts %}
+    <article class="post">
+        <header>
+            {% if "link" in post %}
+            <h2><a href="{{post.link}}">{{ post.title }}</a></h2>
+            {% else %}
+            <h2>{{ post.title }}</h2>
+            {% endif %}
+            <p>posted by {{ post.author }} at {{ post.fancytime }}
+            {% if user_is_admin %}
+            | <a href="/post/{{ post.id }}/edit">edit</a>
+            | <a href="/post/{{ post.id }}/delete">delete</a>
+            {% endif %}
+            </p>
+        </header>
+        {{ post.body|safe }}
+    </article>
+    {% endfor %}
+    {% if nav_newer or nav_older %}
+    <nav>
+        {% if nav_newer %}
+        <a href="{{ nav_newer }}" class="nav_newer">&larr; Newer posts</a>
+        {% endif %}
+        &nbsp; <!-- need non-absolute element to get full size box -->
+        {% if nav_older %}
+        <a href="{{ nav_older }}" class="nav_older">Older posts &rarr;</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

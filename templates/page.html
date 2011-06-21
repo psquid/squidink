@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{% if title == "" %}{{ site_name }}{% else %}{{ title }} :: {{ site_name }}{% endif %}{% endblock %}
+{% block content_body %}
+<section id="page_wrapper">
+    <article class="page">
+        <header>
+            <h2>{{ page.title }}</h2>
+            {% if user_is_admin %}
+            <p>
+            <a href="/page/{{ page.slug }}/edit">edit</a>
+            | <a href="/page/{{ page.slug }}/delete">delete</a>
+            </p>
+            {% endif %}
+        </header>
+        {{ page.body|safe }}
+    </article>
+</section>
+{% endblock %}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% block head %}
+        <title>{% block title %}{{ site_name }}{% endblock %}</title>
+        <link rel="stylesheet" href="/static/ink_n_mustard.css" media="screen" />
+        <meta charset="UTF-8">
+        {% endblock %}
+    </head>
+    <body>
+        <header>
+            <h1>{{ site_name }}</h1>
+        </header>
+        <nav>
+            <ul>
+            {% for item in navigation %}
+                <li><a href="{{item.href}}">{{item.text}}</a></li>
+            {% endfor %}
+            </ul>
+        </nav>
+        <div id="content">
+            {% block content_body %}
+            {% endblock %}
+            {% block sidebar %}
+            <aside id="sidebar">
+            {% if username == "" %}
+                <section id="login">
+                    <form action="/login" method="post">
+                        <p>
+                            <label for="username">Username</label>
+                            <input type="text" name="username" />
+                        </p>
+                        <p>
+                            <label for="password">Password</label>
+                            <input type="password" name="password" />
+                        </p>
+                        <p><input type="submit" value="Login" class="submit" /></p>
+                    </form>
+                </section>
+            {% else %}
+                <section id="logout">
+                    <p>Logged in as {{ username }} (<a href="/logout">log out</a>)</p>
+                </section>
+            {% endif %}
+            {% for section in sidebar_sections %}
+                <section id="{{ section.title }}">
+                    <header>
+                        <h3>{{ section.title }}</h3>
+                    </header>
+                    <ul>
+                    {% for link in section.links %}
+                        <li><a href="{{item.href}}">{{item.text}}</a></li>
+                    {% endfor %}
+                    </ul>
+                </section>
+            {% endfor %}
+            </aside>
+            {% endblock %}
+        </div>
+        <footer>
+            {% block footer %}
+            <p>This blog is powered by SquidInk. All content is available under the <a href="http://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA</a> license unless otherwise stated.</p>
+            {% endblock %}
+        </footer>
+    </body>
+</html>

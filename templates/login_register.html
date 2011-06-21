@@ -1,0 +1,15 @@
+{% extends "full_page.html" %}
+{% block title %}{{ action_name }} :: {{ site_name }}{% endblock %}
+{% block page_title %}{{ action_name }}{% endblock %}
+{% block page_body %}
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
+<form action="{{ action_url }}" method="post">
+    <p><label for="username">Username</label>
+    <input type="text" name="username" /></p>
+    <p><label for="password">Password</label>
+    <input type="password" name="password" /></p>
+    <p><input type="submit" value="{{ action_name }}" /></p>
+</form>
+{% endblock %}
