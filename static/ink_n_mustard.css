@@ -148,6 +148,19 @@ p, img, code {
     padding-bottom: 9px;
 }
 
+img, object {
+    max-width: 100%;
+    box-shadow: 3px 3px 7px #1f1f1f;
+}
+
+a img {
+    border-size: 0px;
+}
+
+a img:hover {
+    box-shadow: 1px 1px 7px #1f1f1f;
+}
+
 form {
     width: 100%;
     display: table;
