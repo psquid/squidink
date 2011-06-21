@@ -3,7 +3,7 @@
     <head>
         {% block head %}
         <title>{% block title %}{{ site_name }}{% endblock %}</title>
-        <link rel="stylesheet" href="/static/ink_n_mustard.css" media="screen" />
+        <link rel="stylesheet" href="{{ url_for("static", filename="ink_n_mustard.css") }}" media="screen" />
         <meta charset="UTF-8">
         {% endblock %}
     </head>
@@ -25,7 +25,7 @@
             <aside id="sidebar">
             {% if username == "" %}
                 <section id="login">
-                    <form action="/login" method="post">
+                    <form action="{{ url_for("login") }}" method="post">
                         <p>
                             <label for="username">Username</label>
                             <input type="text" name="username" />
@@ -39,11 +39,11 @@
                             <input type="submit" value="Login" name="submit" />
                         </p>
                     </form>
-                    <p class="right">or <a href="/user/new">register a new account</a></p>
+                    <p class="right">or <a href="{{ url_for("new_user") }}">register a new account</a></p>
                 </section>
             {% else %}
                 <section id="logout">
-                    <p>Logged in as {{ username }} (<a href="/logout">log out</a>)</p>
+                    <p>Logged in as {{ username }} (<a href="{{ url_for("logout") }}">log out</a>)</p>
                 </section>
             {% endif %}
             {% for section in sidebar_sections %}

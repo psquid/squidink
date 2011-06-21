@@ -5,15 +5,15 @@
     {% for post in posts %}
     <article class="post">
         <header>
-            {% if "link" in post %}
-            <h2><a href="{{post.link}}">{{ post.title }}</a></h2>
+            {% if multi_post %}
+            <h2><a href="{{ url_for("show_post", post_id=post.id) }}">{{ post.title }}</a></h2>
             {% else %}
             <h2>{{ post.title }}</h2>
             {% endif %}
             <p>posted by {{ post.author }} at {{ post.fancytime }}
             {% if user_is_admin %}
-            | <a href="/post/{{ post.id }}/edit">edit</a>
-            | <a href="/post/{{ post.id }}/delete">delete</a>
+            | <a href="{{ url_for("edit_post", post_id=post.id) }}">edit</a>
+            | <a href="{{ url_for("delete_post", post_id=post.id) }}">delete</a>
             {% endif %}
             </p>
         </header>

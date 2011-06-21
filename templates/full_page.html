@@ -2,7 +2,7 @@
 {% block title %}{% if title == "" %}{{ site_name }}{% else %}{{ title }} :: {{ site_name }}{% endif %}{% endblock %}
 {% block head %}
 {{ super() }}
-        <link rel="stylesheet" href="/static/ink_n_mustard_full_page.css" media="screen" />
+    <link rel="stylesheet" href="{{ url_for("static", filename="ink_n_mustard_full_page.css") }}" media="screen" />
 {% endblock %}
 {% block content_body %}
 <section id="page_wrapper">
