@@ -85,6 +85,7 @@ def show_posts(page_num=1):
             "timestamp": g.db.get("post:{0}:timestamp".format(id)),
             "fancytime": datetime.strptime(g.db.get("post:{0}:timestamp".format(id)), TIME_FMT).strftime(FANCY_TIME_FMT),
             "id": id,
+            "num_comments": g.db.llen("post:{0}:comments".format(id))
             })
 
     return render_template("posts.html", title="", posts=posts,
@@ -157,10 +158,31 @@ def delete_post(post_id):
     else:
         abort(403)
 
+@app.route("/post/<int:post_id>/comment", methods=['POST'])
+def post_comment(post_id):
+    if g.logged_in:
+        new_comment_id = g.db.incr("post:{0}:comment:next_id".format(post_id))
+        g.db.set("post:{0}:comment:{1}:author".format(post_id, new_comment_id), g.username)
+        g.db.set("post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
+        g.db.set("post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
+        g.db.rpush("post:{0}:comments".format(post_id), new_comment_id)
+        return redirect(url_for("show_post", post_id=post_id)+"#comment-{0}".format(new_comment_id))
+    else:
+        abort(403)
+
 @app.route("/post/<int:post_id>")
 def show_post(post_id):
     title = g.db.get("post:{0}:title".format(post_id))
     if title is not None:
+        comments = []
+        for comment_id in g.db.lrange("post:{0}:comments".format(post_id), 0, -1):
+            comments.append({
+                "author": g.db.get("post:{0}:comment:{1}:author".format(post_id, comment_id)),
+                "text": g.db.get("post:{0}:comment:{1}:text".format(post_id, comment_id)),
+                "timestamp": g.db.get("post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
+                "fancytime": datetime.strptime(g.db.get("post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
+                "id": comment_id
+                })
         return render_template("posts.html", title=title,
                 posts=[{
                     "title": title,
@@ -168,7 +190,9 @@ def show_post(post_id):
                     "author": g.db.get("post:{0}:author".format(post_id)),
                     "timestamp": g.db.get("post:{0}:timestamp".format(post_id)),
                     "fancytime": datetime.strptime(g.db.get("post:{0}:timestamp".format(post_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
-                    "id": post_id
+                    "id": post_id,
+                    "comments": comments,
+                    "num_comments": len(comments),
                     }],
                 site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
                 username=g.username, user_is_admin=g.user_is_admin, multi_post=False)

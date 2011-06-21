@@ -37,14 +37,14 @@ nav ul li {
     display: inline;
 }
 
-nav ul li a {
+nav ul li a:link, nav ul li a:visited {
     display: block;
     padding: 8px 14px;
     font-size: 15px;
     font-weight: bold;
     line-height: 175%;
 }
-    nav ul li a:hover {
+    nav ul li a:link:hover, nav ul li a:visited:hover, nav ul li a:active {
         background: #f0b000;
         color: #0f0f0f;
     }
@@ -85,6 +85,27 @@ article.post:not(:first-child), #posts nav {
        padding: 0 0 12px;
     }
 
+#comments {
+    padding-top: 5px;
+}
+article.comment header p {
+    color: #a0a0a0;
+}
+article.comment {
+    background: #3c3c3c;
+    padding: 5px;
+    margin-bottom: 6px;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+}
+article.comment:nth-of-type(odd) {
+    background: #3c3c3c;
+}
+article.comment:nth-of-type(even) {
+    background: #4a4a4a;
+}
+
 #posts nav {
     border-radius: 10px;
     -moz-border-radius: 10px;
@@ -113,12 +134,12 @@ footer {
         padding-bottom: 0px;
     }
 
-a {
+a:link, a:visited {
     color: #f0b000;
     text-decoration: none;
 }
 
-a:hover {
+a:link:hover, a:visited:hover, a:active {
     color: #a06000;
 }
 
@@ -208,11 +229,28 @@ form label {
     width: 15%;
 }
 
-input, textarea {
+input, textarea, button {
     min-width: 100%;
     width: 100%;
     display: table-cell;
+    border: 0px;
+    margin-top: 2px;
 }
+
+button, a.pseudo_button {
+    margin-top: 6px;
+    padding: 4px;
+    background: #1f1f1f;
+    color: #f0b000;
+    border: 0px;
+    font: 13px/150% Cantarell, Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+}
+    button:hover {
+        background: #f0b000;
+        color: #0f0f0f;
+    }
 
 textarea {
     min-height: 130px;

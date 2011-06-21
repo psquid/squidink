@@ -10,7 +10,19 @@
             {% else %}
             <h2>{{ post.title }}</h2>
             {% endif %}
-            <p>posted by {{ post.author }} at {{ post.fancytime }}
+            <p>posted by {{ post.author }} at <time datetime="{{ post.timestamp }}">{{ post.fancytime }}</time>
+            {% if multi_post %}
+            |
+            <a href="{{ url_for("show_post", post_id=post.id) }}#comments">
+            {% if post.num_comments == 0 %}
+            no comments
+            {% elif post.num_comments == 1 %}
+            1 comment
+            {% else %}
+            {{ post.num_comments }} comments
+            {% endif %}
+            </a>
+            {% endif %}
             {% if user_is_admin %}
             | <a href="{{ url_for("edit_post", post_id=post.id) }}">edit</a>
             | <a href="{{ url_for("delete_post", post_id=post.id) }}">delete</a>
@@ -18,6 +30,34 @@
             </p>
         </header>
         {{ post.body|safe }}
+        {% if not multi_post %}
+        <section id="comments">
+            <header>
+                <a id="comments" />
+                <h3>Comments ({{ post.num_comments }})</h3>
+            </header>
+            {% if post.comments %}
+            {% for comment in post.comments %}
+            <article class="comment">
+                <header>
+                    <a id="comment-{{ comment.id }}" />
+                    <p>{{ comment.author }} said, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time></p>
+                </header>
+                {{ comment.text }}
+            </article>
+            {% endfor %}
+            {% else %}
+            <p>No comments yet.</p>
+            {% endif %}
+            {% if g.logged_in %}
+            <h4>Post your own comment:</h4>
+            <form action="{{ url_for("post_comment", post_id=post.id) }}" method="post">
+                <textarea name="comment"></textarea>
+                <button type="submit" name="submit">Post comment</button>
+            </form>
+            {% endif %}
+        </section>
+        {% endif %}
     </article>
     {% endfor %}
     {% if nav_newer or nav_older %}
