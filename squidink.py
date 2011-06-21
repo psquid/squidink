@@ -84,12 +84,11 @@ def show_posts(page_num=1):
             "author": g.db.get("post:{0}:author".format(id)),
             "timestamp": g.db.get("post:{0}:timestamp".format(id)),
             "fancytime": datetime.strptime(g.db.get("post:{0}:timestamp".format(id)), TIME_FMT).strftime(FANCY_TIME_FMT),
-            "link": url_for("show_post", post_id=id),
             "id": id,
             })
 
     return render_template("posts.html", title="", posts=posts,
-            nav_newer=nav_newer, nav_older=nav_older,
+            nav_newer=nav_newer, nav_older=nav_older, multi_post=True,
             site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
             username=g.username, user_is_admin=g.user_is_admin)
 
@@ -172,7 +171,7 @@ def show_post(post_id):
                     "id": post_id
                     }],
                 site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
-                username=g.username, user_is_admin=g.user_is_admin)
+                username=g.username, user_is_admin=g.user_is_admin, multi_post=False)
     else:
         if post_id < int(g.db.get("post:next_id")):
             return "This post was deleted."
