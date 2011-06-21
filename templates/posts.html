@@ -2,6 +2,7 @@
 {% block title %}{% if title == "" %}{{ site_name }}{% else %}{{ title }} :: {{ site_name }}{% endif %}{% endblock %}
 {% block content_body %}
 <section id="posts">
+    {% if posts %}
     {% for post in posts %}
     <article class="post">
         <header>
@@ -70,6 +71,9 @@
         <a href="{{ nav_older }}" class="nav_older">Older posts &rarr;</a>
         {% endif %}
     </nav>
+    {% endif %}
+    {% else %}
+    <p>No posts here.</p>
     {% endif %}
 </section>
 {% endblock %}
