@@ -176,6 +176,7 @@ form p {
 form label {
     display: table-cell;
     text-align: right;
+    vertical-align: top;
     padding: 0 7px 0 0;
     width: 15%;
 }
