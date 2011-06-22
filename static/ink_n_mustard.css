@@ -37,6 +37,26 @@ nav ul li {
     display: inline;
 }
 
+nav ul li.rss {
+    float: right;
+}
+
+nav ul li.rss a {
+    margin-right: 10px;
+    padding: 42px 0 0 0 !important;
+    width: 42px;
+    height: 0px !important;
+    overflow: hidden;
+    background-image: url("/static/feed-icon.png");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+nav ul li.rss a:hover {
+    background-image: url("/static/feed-icon_invert.png") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+}
+
 nav ul li a:link, nav ul li a:visited {
     display: block;
     padding: 8px 14px;

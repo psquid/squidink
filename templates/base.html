@@ -18,6 +18,7 @@
             {% for item in navigation %}
                 <li><a href="{{item.href}}">{{item.text}}</a></li>
             {% endfor %}
+                <li class="rss"><a href="{{ url_for("rss_posts") }}">RSS feed</a></li>
             </ul>
         </nav>
         <div id="content">
