@@ -1,0 +1,9 @@
+The following distro packages are required for use of SquidInk:
+    redis
+    python-redis
+
+The following Python packages (install with easy_install, pip, or similar)
+are also required:
+    PyRSS2Gen
+    markdown
+    flask
