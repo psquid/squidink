@@ -48,7 +48,7 @@ def prepare_globals():
 
 @app.route("/favicon.ico")
 def redirect_favicon():
-    return redirect(url_for('static', filename="favicon.ico"))
+    return redirect(url_for("static", filename="favicon.ico"))
 
 def build_nonce(nonce_length=32):
     nonce = ""
@@ -303,19 +303,31 @@ def show_page(page_slug):
 
 ### AUTH
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if not g.logged_in:
-        hashed_stored_pw = g.db.get('users:{0}:hashed_pw'.format(request.form["username"].lower()))
-        if hashed_stored_pw is not None:
-            hashed_request_pw = md5(md5(request.form["password"]).hexdigest()).hexdigest()
-            if hashed_stored_pw == hashed_request_pw:
-                session["username"] = request.form["username"].lower()
-                return redirect("/")
+        if request.method == "POST":
+            hashed_stored_pw = g.db.get(KEY_BASE+"users:{0}:hashed_pw".format(request.form["username"].lower()))
+            if hashed_stored_pw is not None:
+                hashed_request_pw = md5(md5(request.form["password"]).hexdigest()).hexdigest()
+                if hashed_stored_pw == hashed_request_pw:
+                    session["username"] = request.form["username"].lower()
+                    return redirect(url_for("show_posts"))
+                else:
+                    return render_template("login_register.html",
+                            action_name="Login", action_url=url_for("login"),
+                            site_name=g.site_name, navigation=g.nav,
+                            preset_username=request.form["username"],
+                            error="Incorrect password.")
             else:
-                return "Sorry, bad password."
+                return render_template("login_register.html",
+                        action_name="Login", action_url=url_for("login"),
+                        site_name=g.site_name, navigation=g.nav,
+                        error="No such user.")
         else:
-            return "No such user."
+            return render_template("login_register.html",
+                    action_name="Login", action_url=url_for("login"),
+                    site_name=g.site_name, navigation=g.nav)
     else:
         return "You're already logged in, numb-nuts!"
 
