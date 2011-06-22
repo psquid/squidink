@@ -34,17 +34,17 @@
         {% if not multi_post %}
         <section id="comments">
             <header>
-                <a id="comments" />
+                <a id="comments"></a>
                 <h3>Comments ({{ post.num_comments }})</h3>
             </header>
             {% if post.comments %}
             {% for comment in post.comments %}
             <article class="comment">
                 <header>
-                    <a id="comment-{{ comment.id }}" />
+                    <a id="comment-{{ comment.id }}"></a>
                     <p>{{ comment.author }} said, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time></p>
                 </header>
-                {{ comment.text }}
+                {{ comment.text|safe }}
             </article>
             {% endfor %}
             {% else %}

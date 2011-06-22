@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-from flask import Flask, redirect, url_for, session, escape, request, render_template, g, abort
+from flask import Flask, redirect, url_for, session, escape, request, render_template, g, abort, Markup
 from redis import Redis
 from hashlib import md5
-from markdown import Markdown
+import markdown
 from datetime import datetime
 import random
+import re
 app = Flask(__name__)
 
 
@@ -21,7 +22,7 @@ NONCE_CHARS.extend([chr(c) for c in xrange(ord("0"), ord("9")+1)])
 @app.before_request
 def prepare_globals():
     g.db = Redis()
-    g.md = Markdown(safe_mode=True)
+    g.md = markdown.Markdown(safe_mode=True)
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
     if "username" in session:
         g.username = session["username"]
@@ -55,6 +56,35 @@ def build_nonce(nonce_length=32):
     for index in xrange(nonce_length):
         nonce += random.choice(NONCE_CHARS)
     return nonce
+
+def format_comment(comment):
+    RE_STRONGEM = re.compile("([_*]{3}.+[_*]{3})")
+    RE_STRONG = re.compile("([_*]{2}.+[_*]{2})")
+    RE_EM = re.compile("([_*].+[_*])")
+    formatted_comment = Markup("")
+    for para in comment.replace("\r\n", "\n").split("\n\n"):
+        formatted_comment += Markup("<p>")
+        for block in RE_STRONGEM.split(para):
+            if RE_STRONGEM.match(block):
+                formatted_comment += Markup("<strong><em>")
+                formatted_comment += Markup.escape(block[3:-3])
+                formatted_comment += Markup("</em></strong>")
+            else:
+                for block in RE_STRONG.split(block):
+                    if RE_STRONG.match(block):
+                        formatted_comment += Markup("<strong>")
+                        formatted_comment += Markup.escape(block[2:-2])
+                        formatted_comment += Markup("</strong>")
+                    else:
+                        for block in RE_EM.split(block):
+                            if RE_EM.match(block):
+                                formatted_comment += Markup("<em>")
+                                formatted_comment += Markup.escape(block[1:-1])
+                                formatted_comment += Markup("</em>")
+                            else:
+                                formatted_comment += Markup.escape(block)
+        formatted_comment += Markup("</p>\n")
+    return formatted_comment
 
 ### POSTS
 
@@ -180,7 +210,7 @@ def show_post(post_id):
         for comment_id in g.db.lrange(KEY_BASE+"post:{0}:comments".format(post_id), 0, -1):
             comments.append({
                 "author": g.db.get(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, comment_id)),
-                "text": g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id)),
+                "text": format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))),
                 "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
                 "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
                 "id": comment_id
