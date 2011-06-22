@@ -235,7 +235,7 @@ def delete_post(post_id):
             else:
                 confirm_nonce = build_nonce()
                 g.db.setex(KEY_BASE+"post:{0}:delete_nonce".format(post_id), confirm_nonce, 60)
-                return render_template("page_post_delete.html", is_page=False, item_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
+                return render_template("item_delete.html", item_type="post", item_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
                         action_name="Delete post", action_url=url_for("delete_post", post_id=post_id),
                         site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
         else:
@@ -267,6 +267,53 @@ def post_comment(post_id):
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not logged in. You must login to post comments.")
+                    },
+                site_name=g.site_name, navigation=g.nav), 403
+
+@app.route("/post/<int:post_id>/comment/<int:comment_id>/delete", methods=["POST", "GET"])
+def delete_comment(post_id, comment_id):
+    if g.user_is_admin:
+        if g.db.get(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, comment_id)) is not None:
+            if request.method == "POST":
+                confirm_nonce = request.form["confirm_nonce"]
+                stored_nonce = g.db.get(KEY_BASE+"post:{0}:comment:{1}:delete_nonce".format(post_id, comment_id))
+                if confirm_nonce == stored_nonce:
+                    for key in g.db.keys(KEY_BASE+"post:{0}:comment:{1}:*".format(post_id, comment_id)):
+                        g.db.delete(key)
+                    g.db.lrem(KEY_BASE+"post:{0}:comments".format(post_id), comment_id, 0)
+                    return redirect(url_for("show_post", post_id=post_id)+"#comments")
+                elif stored_nonce is not None:
+                    return render_template("full_page.html", title="Bad delete request",
+                            page={
+                                "title": "Error",
+                                "body": g.md.convert("Delete request contained invalid confirmation code.")
+                                },
+                            site_name=g.site_name, navigation=g.nav), 403
+                else:
+                    return render_template("full_page.html", title="Bad delete request",
+                            page={
+                                "title": "Error",
+                                "body": g.md.convert("Delete request expired.")
+                                },
+                            site_name=g.site_name, navigation=g.nav), 403
+            else:
+                confirm_nonce = build_nonce()
+                g.db.setex(KEY_BASE+"post:{0}:comment:{1}:delete_nonce".format(post_id, comment_id), confirm_nonce, 60)
+                return render_template("item_delete.html", item_type="comment",
+                        action_name="Delete comment", action_url=url_for("delete_comment", post_id=post_id, comment_id=comment_id),
+                        site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
+        else:
+            return render_template("full_page.html", title="Comment not found",
+                    page={
+                        "title": "Error",
+                        "body": g.md.convert("No such comment exists.")
+                        },
+                    site_name=g.site_name, navigation=g.nav), 404
+    else:
+        return render_template("full_page.html", title="Not allowed",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You are not allowed to delete comments.")
                     },
                 site_name=g.site_name, navigation=g.nav), 403
 
@@ -417,7 +464,7 @@ def delete_page(page_slug):
             else:
                 confirm_nonce = build_nonce()
                 g.db.setex(KEY_BASE+"page:{0}:delete_nonce".format(page_slug), confirm_nonce, 60)
-                return render_template("page_post_delete.html", is_page=True,
+                return render_template("item_delete.html", item_type="page",
                         action_name="Delete page", action_url=url_for("delete_page", page_slug=page_slug),
                         site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
         else:

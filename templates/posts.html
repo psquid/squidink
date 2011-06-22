@@ -42,7 +42,11 @@
             <article class="comment">
                 <header>
                     <a id="comment-{{ comment.id }}"></a>
-                    <p>{{ comment.author }} said, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time></p>
+                    <p>{{ comment.author }} said, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time>
+                    {% if user_is_admin %}
+                    | <a href="{{ url_for("delete_comment", post_id=post.id, comment_id=comment.id) }}">delete</a>
+                    {% endif %}
+                    | <a href="#comment-{{ comment.id }}">permalink</a></p>
                 </header>
                 {{ comment.text|safe }}
             </article>
