@@ -239,6 +239,7 @@ input, textarea, button {
 }
 
 button, a.pseudo_button {
+    text-align: center;
     margin-top: 6px;
     padding: 4px;
     background: #1f1f1f;
