@@ -6,6 +6,7 @@ import markdown
 from datetime import datetime
 import random
 import re
+import PyRSS2Gen
 app = Flask(__name__)
 
 
@@ -91,11 +92,14 @@ def format_comment(comment):
 @app.route("/")
 @app.route("/posts/<int:page_num>")
 def show_posts(page_num=1):
+    posts_per_page = int(request.args.get("per_page", 10))
+
+    post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
+    posts = []
+
     persist_args = {}
     if "per_page" in request.args:
         persist_args["per_page"] = request.args["per_page"]
-
-    posts_per_page = int(request.args.get("per_page", 10))
 
     if page_num > 1:
         nav_newer = url_for("show_posts", page_num=page_num-1, **persist_args)
@@ -107,8 +111,6 @@ def show_posts(page_num=1):
     else:
         nav_older = None
 
-    post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
-    posts = []
     for id in post_ids:
         posts.append({
             "title": g.db.get(KEY_BASE+"post:{0}:title".format(id)),
@@ -124,6 +126,29 @@ def show_posts(page_num=1):
             nav_newer=nav_newer, nav_older=nav_older, multi_post=True,
             site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
             username=g.username, user_is_admin=g.user_is_admin)
+
+@app.route("/rss")
+def rss_posts():
+    posts_per_page = int(request.args.get("per_page", 10))
+
+    post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0, posts_per_page-1)]
+    posts = []
+
+    for post_id in post_ids:
+        posts.append(
+                PyRSS2Gen.RSSItem(
+                    title = g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
+                    link = url_for("show_post", post_id=post_id),
+                    description = g.md.convert(g.db.get(KEY_BASE+"post:{0}:body".format(post_id))),
+                    guid = PyRSS2Gen.Guid(url_for("show_post", post_id=post_id)),
+                    pubDate = datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)), TIME_FMT)
+                    )
+                )
+    return PyRSS2Gen.RSS2(
+            title = g.site_name, link=url_for("show_posts"),
+            description = "{0} latest items".format(g.site_name),
+            lastBuildDate = datetime.utcnow(),
+            items = posts).to_xml()
 
 @app.route("/post/new", methods=['GET', 'POST'])
 def new_post():
