@@ -60,6 +60,8 @@
                 <textarea name="comment"></textarea>
                 <button type="submit" name="submit">Post comment</button>
             </form>
+            {% else %}
+            <p><em>To post a comment, you'll need to <a href="{{ url_for("new_user") }}">get an account</a>.</em></p>
             {% endif %}
         </section>
         {% endif %}
