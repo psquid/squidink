@@ -3,6 +3,8 @@ import getpass
 import redis
 import hashlib
 
+KEY_BASE = "squidink:"  # change this to point to a different db if needed
+
 db = redis.Redis()
 
 while True:
@@ -18,7 +20,7 @@ while True:
     if sitename != "":
         break
 
-db.set("users:{0}:hashed_pw".format(initial_admin), hashlib.md5(hashlib.md5(initial_admin_pass).hexdigest()).hexdigest())
-db.sadd("admins", initial_admin)
-db.sadd("users", initial_admin)
-db.set("sitename", sitename)
+db.set(KEY_BASE+"users:{0}:hashed_pw".format(initial_admin), hashlib.md5(hashlib.md5(initial_admin_pass).hexdigest()).hexdigest())
+db.sadd(KEY_BASE+"admins", initial_admin)
+db.sadd(KEY_BASE+"users", initial_admin)
+db.set(KEY_BASE+"sitename", sitename)

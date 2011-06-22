@@ -10,8 +10,10 @@ app = Flask(__name__)
 
 ## UTILITY FUNCTIONS/VARS
 
+KEY_BASE = "squidink:"  # change this to switch db name; this allows multiple blogs on one redis instance
+FANCY_TIME_FMT = "%H:%M on %a %b %d %Y (UTC)"  # change this to change how times are displayed
+
 TIME_FMT = "%Y-%m-%dT%H:%M:%SZ"
-FANCY_TIME_FMT = "%H:%M on %a %b %d %Y (UTC)"
 NONCE_CHARS = [chr(c) for c in xrange(ord("A"), ord("Z")+1)]
 NONCE_CHARS.extend([chr(c) for c in xrange(ord("a"), ord("z")+1)])
 NONCE_CHARS.extend([chr(c) for c in xrange(ord("0"), ord("9")+1)])
@@ -20,7 +22,7 @@ NONCE_CHARS.extend([chr(c) for c in xrange(ord("0"), ord("9")+1)])
 def prepare_globals():
     g.db = Redis()
     g.md = Markdown(safe_mode=True)
-    g.site_name = g.db.get("sitename") or "Unnamed SquidInk app"
+    g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
     if "username" in session:
         g.username = session["username"]
         g.logged_in = True
@@ -30,12 +32,12 @@ def prepare_globals():
     g.nav = [
         {"text": "Home", "href": "/"},
         ]
-    for page_slug in list(g.db.smembers("pages")):
+    for page_slug in list(g.db.smembers(KEY_BASE+"pages")):
         g.nav.append({
-            "text": g.db.get("page:{0}:title".format(page_slug)),
+            "text": g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
             "href": url_for("show_page", page_slug=page_slug)
             })
-    if g.db.sismember("admins", g.username):
+    if g.db.sismember(KEY_BASE+"admins", g.username):
         g.user_is_admin = True
         g.nav.extend([
             {"text": "New post", "href": "/post/new"},
@@ -70,22 +72,22 @@ def show_posts(page_num=1):
     else:
         nav_newer = None
 
-    if page_num * posts_per_page < g.db.llen("posts"):
+    if page_num * posts_per_page < g.db.llen(KEY_BASE+"posts"):
         nav_older = url_for("show_posts", page_num=page_num+1, **persist_args)
     else:
         nav_older = None
 
-    post_ids = [int(id) for id in g.db.lrange("posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
+    post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
     posts = []
     for id in post_ids:
         posts.append({
-            "title": g.db.get("post:{0}:title".format(id)),
-            "body": g.md.convert(g.db.get("post:{0}:body".format(id))),
-            "author": g.db.get("post:{0}:author".format(id)),
-            "timestamp": g.db.get("post:{0}:timestamp".format(id)),
-            "fancytime": datetime.strptime(g.db.get("post:{0}:timestamp".format(id)), TIME_FMT).strftime(FANCY_TIME_FMT),
+            "title": g.db.get(KEY_BASE+"post:{0}:title".format(id)),
+            "body": g.md.convert(g.db.get(KEY_BASE+"post:{0}:body".format(id))),
+            "author": g.db.get(KEY_BASE+"post:{0}:author".format(id)),
+            "timestamp": g.db.get(KEY_BASE+"post:{0}:timestamp".format(id)),
+            "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(id)), TIME_FMT).strftime(FANCY_TIME_FMT),
             "id": id,
-            "num_comments": g.db.llen("post:{0}:comments".format(id))
+            "num_comments": g.db.llen(KEY_BASE+"post:{0}:comments".format(id))
             })
 
     return render_template("posts.html", title="", posts=posts,
@@ -97,12 +99,12 @@ def show_posts(page_num=1):
 def new_post():
     if g.user_is_admin:
         if request.method == "POST":
-            new_post_id = g.db.incr("post:next_id")
-            g.db.set("post:{0}:title".format(new_post_id), request.form["title"])
-            g.db.set("post:{0}:body".format(new_post_id), request.form["body"])
-            g.db.set("post:{0}:author".format(new_post_id), session["username"])
-            g.db.set("post:{0}:timestamp".format(new_post_id), datetime.utcnow().strftime(TIME_FMT))
-            g.db.lpush("posts", new_post_id)
+            new_post_id = g.db.incr(KEY_BASE+"post:next_id")
+            g.db.set(KEY_BASE+"post:{0}:title".format(new_post_id), request.form["title"])
+            g.db.set(KEY_BASE+"post:{0}:body".format(new_post_id), request.form["body"])
+            g.db.set(KEY_BASE+"post:{0}:author".format(new_post_id), session["username"])
+            g.db.set(KEY_BASE+"post:{0}:timestamp".format(new_post_id), datetime.utcnow().strftime(TIME_FMT))
+            g.db.lpush(KEY_BASE+"posts", new_post_id)
             return redirect(url_for("show_post", post_id=new_post_id))
         else:
             return render_template("page_post_edit.html",
@@ -114,18 +116,18 @@ def new_post():
 @app.route("/post/<int:post_id>/edit", methods=['GET', 'POST'])
 def edit_post(post_id):
     if g.user_is_admin:
-        if g.db.get("post:{0}:title".format(post_id)) is not None:
+        if g.db.get(KEY_BASE+"post:{0}:title".format(post_id)) is not None:
             if request.method == "POST":
-                g.db.set("post:{0}:title".format(post_id), request.form["title"])
-                g.db.set("post:{0}:body".format(post_id), request.form["body"])
-                g.db.set("post:{0}:edit_timestamp".format(post_id), datetime.utcnow().strftime(TIME_FMT))
+                g.db.set(KEY_BASE+"post:{0}:title".format(post_id), request.form["title"])
+                g.db.set(KEY_BASE+"post:{0}:body".format(post_id), request.form["body"])
+                g.db.set(KEY_BASE+"post:{0}:edit_timestamp".format(post_id), datetime.utcnow().strftime(TIME_FMT))
                 return redirect(url_for("show_post", post_id=post_id))
             else:
                 return render_template("page_post_edit.html",
                         action_name="Edit post", action_url=url_for("edit_post", post_id=post_id),
                         site_name=g.site_name, navigation=g.nav, is_page=False,
-                        preset_title=g.db.get("post:{0}:title".format(post_id)),
-                        preset_body=g.db.get("post:{0}:body".format(post_id)))
+                        preset_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
+                        preset_body=g.db.get(KEY_BASE+"post:{0}:body".format(post_id)))
         else:
             abort(404)
     else:
@@ -134,14 +136,14 @@ def edit_post(post_id):
 @app.route("/post/<int:post_id>/delete", methods=['GET', 'POST'])
 def delete_post(post_id):
     if g.user_is_admin:
-        if g.db.get("post:{0}:title".format(post_id)) is not None:
+        if g.db.get(KEY_BASE+"post:{0}:title".format(post_id)) is not None:
             if request.method == "POST":
                 confirm_nonce = request.form["confirm_nonce"]
-                stored_nonce = g.db.get("post:{0}:delete_nonce".format(post_id))
+                stored_nonce = g.db.get(KEY_BASE+"post:{0}:delete_nonce".format(post_id))
                 if confirm_nonce == stored_nonce:
-                    for key in g.db.keys("post:{0}:*".format(post_id)):
+                    for key in g.db.keys(KEY_BASE+"post:{0}:*".format(post_id)):
                         g.db.delete(key)
-                    g.db.lrem("posts", post_id, 0)
+                    g.db.lrem(KEY_BASE+"posts", post_id, 0)
                     return redirect(url_for("show_posts"))
                 elif stored_nonce is not None:
                     return "Delete request contained invalid confirmation code."
@@ -149,8 +151,8 @@ def delete_post(post_id):
                     return "Delete request expired."
             else:
                 confirm_nonce = build_nonce()
-                g.db.setex("post:{0}:delete_nonce".format(post_id), confirm_nonce, 60)
-                return render_template("page_post_delete.html", is_page=False, item_title=g.db.get("post:{0}:title".format(post_id)),
+                g.db.setex(KEY_BASE+"post:{0}:delete_nonce".format(post_id), confirm_nonce, 60)
+                return render_template("page_post_delete.html", is_page=False, item_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
                         action_name="Delete post", action_url=url_for("delete_post", post_id=post_id),
                         site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
         else:
@@ -161,35 +163,35 @@ def delete_post(post_id):
 @app.route("/post/<int:post_id>/comment", methods=['POST'])
 def post_comment(post_id):
     if g.logged_in:
-        new_comment_id = g.db.incr("post:{0}:comment:next_id".format(post_id))
-        g.db.set("post:{0}:comment:{1}:author".format(post_id, new_comment_id), g.username)
-        g.db.set("post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
-        g.db.set("post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
-        g.db.rpush("post:{0}:comments".format(post_id), new_comment_id)
+        new_comment_id = g.db.incr(KEY_BASE+"post:{0}:comment:next_id".format(post_id))
+        g.db.set(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, new_comment_id), g.username)
+        g.db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
+        g.db.set(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
+        g.db.rpush(KEY_BASE+"post:{0}:comments".format(post_id), new_comment_id)
         return redirect(url_for("show_post", post_id=post_id)+"#comment-{0}".format(new_comment_id))
     else:
         abort(403)
 
 @app.route("/post/<int:post_id>")
 def show_post(post_id):
-    title = g.db.get("post:{0}:title".format(post_id))
+    title = g.db.get(KEY_BASE+"post:{0}:title".format(post_id))
     if title is not None:
         comments = []
-        for comment_id in g.db.lrange("post:{0}:comments".format(post_id), 0, -1):
+        for comment_id in g.db.lrange(KEY_BASE+"post:{0}:comments".format(post_id), 0, -1):
             comments.append({
-                "author": g.db.get("post:{0}:comment:{1}:author".format(post_id, comment_id)),
-                "text": g.db.get("post:{0}:comment:{1}:text".format(post_id, comment_id)),
-                "timestamp": g.db.get("post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
-                "fancytime": datetime.strptime(g.db.get("post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
+                "author": g.db.get(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, comment_id)),
+                "text": g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id)),
+                "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
+                "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
                 "id": comment_id
                 })
         return render_template("posts.html", title=title,
                 posts=[{
                     "title": title,
-                    "body": g.md.convert(g.db.get("post:{0}:body".format(post_id))),
-                    "author": g.db.get("post:{0}:author".format(post_id)),
-                    "timestamp": g.db.get("post:{0}:timestamp".format(post_id)),
-                    "fancytime": datetime.strptime(g.db.get("post:{0}:timestamp".format(post_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
+                    "body": g.md.convert(g.db.get(KEY_BASE+"post:{0}:body".format(post_id))),
+                    "author": g.db.get(KEY_BASE+"post:{0}:author".format(post_id)),
+                    "timestamp": g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)),
+                    "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
                     "id": post_id,
                     "comments": comments,
                     "num_comments": len(comments),
@@ -197,7 +199,7 @@ def show_post(post_id):
                 site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
                 username=g.username, user_is_admin=g.user_is_admin, multi_post=False)
     else:
-        if post_id < int(g.db.get("post:next_id")):
+        if post_id < int(g.db.get(KEY_BASE+"post:next_id")):
             return "This post was deleted."
         abort(404)
 
@@ -211,10 +213,10 @@ def new_page():
             new_page_slug = request.form["slug"].lower().strip()
             if new_page_slug in ["new", "delete", "edit", ""]:
                 return "Invalid page slug."
-            elif not g.db.sismember("pages", new_page_slug):
-                g.db.set("page:{0}:title".format(new_page_slug), request.form["title"])
-                g.db.set("page:{0}:body".format(new_page_slug), request.form["body"])
-                g.db.sadd("pages", new_page_slug)
+            elif not g.db.sismember(KEY_BASE+"pages", new_page_slug):
+                g.db.set(KEY_BASE+"page:{0}:title".format(new_page_slug), request.form["title"])
+                g.db.set(KEY_BASE+"page:{0}:body".format(new_page_slug), request.form["body"])
+                g.db.sadd(KEY_BASE+"pages", new_page_slug)
                 return redirect(url_for("show_page", page_slug=new_page_slug))
             else:
                 return "Page slug already in use."
@@ -228,24 +230,24 @@ def new_page():
 @app.route("/page/<page_slug>/edit", methods=['GET', 'POST'])
 def edit_page(page_slug):
     if g.user_is_admin:
-        if g.db.get("page:{0}:title".format(page_slug)) is not None:
+        if g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)) is not None:
             if request.method == "POST":
                 if request.form["slug"].lower() != page_slug.lower():
-                    g.db.delete("page:{0}:title".format(page_slug))
-                    g.db.delete("page:{0}:body".format(page_slug))
-                    g.db.srem("pages", page_slug)
+                    g.db.delete(KEY_BASE+"page:{0}:title".format(page_slug))
+                    g.db.delete(KEY_BASE+"page:{0}:body".format(page_slug))
+                    g.db.srem(KEY_BASE+"pages", page_slug)
                     page_slug = request.form["slug"]
-                    g.db.sadd("pages", page_slug)
-                g.db.set("page:{0}:title".format(page_slug), request.form["title"])
-                g.db.set("page:{0}:body".format(page_slug), request.form["body"])
+                    g.db.sadd(KEY_BASE+"pages", page_slug)
+                g.db.set(KEY_BASE+"page:{0}:title".format(page_slug), request.form["title"])
+                g.db.set(KEY_BASE+"page:{0}:body".format(page_slug), request.form["body"])
                 return redirect(url_for("show_page", page_slug=page_slug))
             else:
                 return render_template("page_post_edit.html",
                         action_name="Edit page", action_url=url_for("edit_page", page_slug=page_slug),
                         site_name=g.site_name, navigation=g.nav, is_page=True,
-                        preset_title=g.db.get("page:{0}:title".format(page_slug)),
+                        preset_title=g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
                         preset_slug=page_slug,
-                        preset_body=g.db.get("page:{0}:body".format(page_slug)))
+                        preset_body=g.db.get(KEY_BASE+"page:{0}:body".format(page_slug)))
         else:
             abort(404)
     else:
@@ -254,14 +256,14 @@ def edit_page(page_slug):
 @app.route("/page/<page_slug>/delete", methods=['GET', 'POST'])
 def delete_page(page_slug):
     if g.user_is_admin:
-        if g.db.get("page:{0}:title".format(page_slug)) is not None:
+        if g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)) is not None:
             if request.method == "POST":
                 confirm_nonce = request.form["confirm_nonce"]
-                stored_nonce = g.db.get("page:{0}:delete_nonce".format(page_slug))
+                stored_nonce = g.db.get(KEY_BASE+"page:{0}:delete_nonce".format(page_slug))
                 if confirm_nonce == stored_nonce:
-                    for key in g.db.keys("page:{0}:*".format(page_slug)):
+                    for key in g.db.keys(KEY_BASE+"page:{0}:*".format(page_slug)):
                         g.db.delete(key)
-                    g.db.srem("pages", page_slug)
+                    g.db.srem(KEY_BASE+"pages", page_slug)
                     return redirect(url_for("show_posts"))
                 elif stored_nonce is not None:
                     return "Delete request contained invalid confirmation code."
@@ -269,7 +271,7 @@ def delete_page(page_slug):
                     return "Delete request expired."
             else:
                 confirm_nonce = build_nonce()
-                g.db.setex("page:{0}:delete_nonce".format(page_slug), confirm_nonce, 60)
+                g.db.setex(KEY_BASE+"page:{0}:delete_nonce".format(page_slug), confirm_nonce, 60)
                 return render_template("page_post_delete.html", is_page=True,
                         action_name="Delete page", action_url=url_for("delete_page", page_slug=page_slug),
                         site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
@@ -280,12 +282,12 @@ def delete_page(page_slug):
 
 @app.route("/page/<page_slug>")
 def show_page(page_slug):
-    title = g.db.get("page:{0}:title".format(page_slug))
+    title = g.db.get(KEY_BASE+"page:{0}:title".format(page_slug))
     if title is not None:
         return render_template("page.html", title=title,
                 page={
                     "title": title,
-                    "body": g.md.convert(g.db.get("page:{0}:body".format(page_slug))),
+                    "body": g.md.convert(g.db.get(KEY_BASE+"page:{0}:body".format(page_slug))),
                     "slug": page_slug
                     },
                 site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
@@ -337,11 +339,11 @@ def new_user():
                     action_name="Register", action_url=url_for("new_user"),
                     site_name=g.site_name, navigation=g.nav,
                     error="That username is invalid.")
-        elif not g.db.sismember("users", username):
+        elif not g.db.sismember(KEY_BASE+"users", username):
             password = request.form["password"].strip().lower()
             if len(password) > 0:
-                g.db.sadd("users", username)
-                g.db.set("users:{0}:hashed_pw".format(username),
+                g.db.sadd(KEY_BASE+"users", username)
+                g.db.set(KEY_BASE+"users:{0}:hashed_pw".format(username),
                         md5(md5(request.form["password"]).hexdigest()).hexdigest())
                 if "username" in session:
                     return render_template("full_page.html", title="Success",
