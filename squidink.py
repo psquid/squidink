@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, redirect, url_for, session, request, render_template, g, Markup
+from flask import Flask, redirect, url_for, session, request, render_template, g, Markup, make_response
 from redis import Redis
 from hashlib import md5
 import markdown
@@ -144,11 +144,14 @@ def rss_posts():
                     pubDate = datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)), TIME_FMT)
                     )
                 )
-    return PyRSS2Gen.RSS2(
+
+    response = make_response(PyRSS2Gen.RSS2(
             title = g.site_name, link=url_for("show_posts"),
             description = "{0} latest items".format(g.site_name),
             lastBuildDate = datetime.utcnow(),
-            items = posts).to_xml()
+            items = posts).to_xml())
+    response.mimetype = "application/rss+xml"
+    return response
 
 @app.route("/post/new", methods=['GET', 'POST'])
 def new_post():
