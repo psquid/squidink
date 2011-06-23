@@ -18,7 +18,14 @@
             {% for item in navigation %}
                 <li><a href="{{item.href}}">{{item.text}}</a></li>
             {% endfor %}
-                <li class="rss"><a href="{{ url_for("rss_posts") }}">RSS feed</a></li>
+                <ul class="nav_right">
+                    {% if user_is_admin %}
+                    <li class="config"><a href="/admin">Admin</a></li>
+                    {% elif username != "" %}
+                    <li class="config"><a href="/config">Preferences</a></li>
+                    {% endif %}
+                    <li class="rss"><a href="{{ url_for("rss_posts") }}">RSS feed</a></li>
+                </ul>
             </ul>
         </nav>
         <div id="content">
