@@ -62,28 +62,46 @@ def format_comment(comment):
     RE_STRONGEM = re.compile("([_*]{3}.+[_*]{3})")
     RE_STRONG = re.compile("([_*]{2}.+[_*]{2})")
     RE_EM = re.compile("([_*].+[_*])")
+    URL_FMT = "<a href=\"{0}\" rel=\"nofollow\">{0}</a>"
+    RE_URL = re.compile("(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)")
     formatted_comment = Markup("")
     for para in comment.replace("\r\n", "\n").split("\n\n"):
         formatted_comment += Markup("<p>")
         for block in RE_STRONGEM.split(para):
             if RE_STRONGEM.match(block):
                 formatted_comment += Markup("<strong><em>")
-                formatted_comment += Markup.escape(block[3:-3])
+                for subblock in RE_URL.split(block[3:-3]):
+                    if RE_URL.match(subblock):
+                        formatted_comment += Markup(URL_FMT.format(subblock))
+                    else:
+                        formatted_comment += Markup.escape(subblock)
                 formatted_comment += Markup("</em></strong>")
             else:
                 for block in RE_STRONG.split(block):
                     if RE_STRONG.match(block):
                         formatted_comment += Markup("<strong>")
-                        formatted_comment += Markup.escape(block[2:-2])
+                        for subblock in RE_URL.split(block[2:-2]):
+                            if RE_URL.match(subblock):
+                                formatted_comment += Markup(URL_FMT.format(subblock))
+                            else:
+                                formatted_comment += Markup.escape(subblock)
                         formatted_comment += Markup("</strong>")
                     else:
                         for block in RE_EM.split(block):
                             if RE_EM.match(block):
                                 formatted_comment += Markup("<em>")
-                                formatted_comment += Markup.escape(block[1:-1])
+                                for subblock in RE_URL.split(block[1:-1]):
+                                    if RE_URL.match(subblock):
+                                        formatted_comment += Markup(URL_FMT.format(subblock))
+                                    else:
+                                        formatted_comment += Markup.escape(subblock)
                                 formatted_comment += Markup("</em>")
                             else:
-                                formatted_comment += Markup.escape(block)
+                                for subblock in RE_URL.split(block):
+                                    if RE_URL.match(subblock):
+                                        formatted_comment += Markup(URL_FMT.format(subblock))
+                                    else:
+                                        formatted_comment += Markup.escape(subblock)
         formatted_comment += Markup("</p>\n")
     return formatted_comment
 
