@@ -276,6 +276,7 @@ form label {
 input, select, textarea, button {
     min-width: 100%;
     width: 100%;
+    padding: 4px 0;
     display: table-cell;
     border: 0px;
     margin-top: 2px;
@@ -292,7 +293,7 @@ button, a.pseudo_button {
     font-weight: bold;
     cursor: pointer;
 }
-    button:hover, a.pseudo_button:hover {
+    button:hover, a.pseudo_button:hover, button:focus, a.pseudo_button:focus {
         background: #f0b000 !important;
         color: #0f0f0f !important;
     }
