@@ -514,6 +514,17 @@ def show_page(page_slug):
 def login():
     if not g.logged_in:
         if request.method == "POST":
+            try:
+                tries = int(g.db.get("users:{0}:pw_tries".format(request.form["username"].lower())))
+            except TypeError:
+                tries = 0
+            if tries >= 5:
+                secs_left = g.db.ttl("users:{0}:pw_tries".format(request.form["username"].lower()))
+                min_left, secs_left = (secs_left - (secs_left % 60))/60, secs_left % 60
+                return render_template("login_register.html",
+                        action_name="Login", action_url=url_for("login"),
+                        preset_username=request.form["username"],
+                        error="You have used all your tries, and must wait another {0} minute(s), {1} second(s) before any login attempts on this account will be accepted.".format(min_left, secs_left))
             hashed_stored_pw = g.db.get(KEY_BASE+"users:{0}:hashed_pw".format(request.form["username"].lower()))
             if hashed_stored_pw is not None:
                 hashed_request_pw = password_hash(request.form["password"])
@@ -521,11 +532,13 @@ def login():
                     session["username"] = request.form["username"].lower()
                     return redirect(request.form["return_to"])
                 else:
+                    trues = g.db.incr("users:{0}:pw_tries".format(request.form["username"].lower()))
+                    g.db.expire("users:{0}:pw_tries".format(request.form["username"].lower()), 15*60)
                     return render_template("login_register.html",
                             action_name="Login", action_url=url_for("login"),
                             preset_username=request.form["username"],
                             return_to=request.form["return_to"],
-                            error="Incorrect password.")
+                            error="Incorrect password. You have {0} tries left, after which all attempts to login to this account will be ignored for 15 minutes.".format(5-tries))
             else:
                 return render_template("login_register.html",
                         action_name="Login", action_url=url_for("login"),
