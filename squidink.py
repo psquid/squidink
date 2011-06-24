@@ -690,9 +690,9 @@ def delete_user(username):
         if g.db.sismember(KEY_BASE+"users", username):
             if request.method == "POST":
                 confirm_nonce = request.form["confirm_nonce"]
-                stored_nonce = g.db.get(KEY_BASE+"user:{0}:delete_nonce".format(username))
+                stored_nonce = g.db.get(KEY_BASE+"users:{0}:delete_nonce".format(username))
                 if confirm_nonce == stored_nonce:
-                    for key in g.db.keys(KEY_BASE+"user:{0}:*".format(username)):
+                    for key in g.db.keys(KEY_BASE+"users:{0}:*".format(username)):
                         g.db.delete(key)
                     g.db.srem(KEY_BASE+"users", username)
                     return redirect(url_for("show_config"))
@@ -710,7 +710,7 @@ def delete_user(username):
                                 }), 403
             else:
                 confirm_nonce = build_nonce()
-                g.db.setex(KEY_BASE+"user:{0}:delete_nonce".format(username), confirm_nonce, 60)
+                g.db.setex(KEY_BASE+"users:{0}:delete_nonce".format(username), confirm_nonce, 60)
                 return render_template("item_delete.html", item_type="user",
                         action_name="Delete user", action_url=url_for("delete_user", username=username),
                         confirm_nonce=confirm_nonce)
