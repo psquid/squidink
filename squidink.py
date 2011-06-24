@@ -35,10 +35,11 @@ def prepare_globals():
         {"text": "Home", "href": "/"},
         ]
     for page_slug in list(g.db.smembers(KEY_BASE+"pages")):
-        g.nav.append({
-            "text": g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
-            "href": url_for("show_page", page_slug=page_slug)
-            })
+        if g.db.get(KEY_BASE+"page:{0}:skip_listing".format(page_slug)) is None:
+            g.nav.append({
+                "text": g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
+                "href": url_for("show_page", page_slug=page_slug)
+                })
     g.sidebar_sections = []
     for sidebar_section in list(g.db.smembers(KEY_BASE+"sidebar:sections")):
         items = []
@@ -393,6 +394,8 @@ def new_page():
             elif not g.db.sismember(KEY_BASE+"pages", new_page_slug):
                 g.db.set(KEY_BASE+"page:{0}:title".format(new_page_slug), request.form["title"])
                 g.db.set(KEY_BASE+"page:{0}:body".format(new_page_slug), request.form["body"])
+                if request.form.get("list_page", None) is None:
+                    g.db.set(KEY_BASE+"page:{0}:skip_listing".format(new_page_slug), True)
                 g.db.sadd(KEY_BASE+"pages", new_page_slug)
                 return redirect(url_for("show_page", page_slug=new_page_slug))
             else:
@@ -404,7 +407,7 @@ def new_page():
         else:
             return render_template("page_post_edit.html",
                     action_name="Create page", action_url=url_for("new_page"),
-                    is_page=True)
+                    is_page=True, preset_listpage=True)
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
@@ -425,13 +428,17 @@ def edit_page(page_slug):
                     g.db.sadd(KEY_BASE+"pages", page_slug)
                 g.db.set(KEY_BASE+"page:{0}:title".format(page_slug), request.form["title"])
                 g.db.set(KEY_BASE+"page:{0}:body".format(page_slug), request.form["body"])
+                if request.form.get("list_page", None) is not None:
+                    g.db.delete(KEY_BASE+"page:{0}:skip_listing".format(page_slug))
+                else:
+                    g.db.set(KEY_BASE+"page:{0}:skip_listing".format(page_slug), True)
                 return redirect(url_for("show_page", page_slug=page_slug))
             else:
                 return render_template("page_post_edit.html",
                         action_name="Edit page", action_url=url_for("edit_page", page_slug=page_slug),
                         is_page=True,
                         preset_title=g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
-                        preset_slug=page_slug,
+                        preset_slug=page_slug, preset_listpage=(g.db.get(KEY_BASE+"page:{0}:skip_listing".format(page_slug)) is None),
                         preset_body=g.db.get(KEY_BASE+"page:{0}:body".format(page_slug)))
         else:
             return render_template("full_page.html", title="Page not found",

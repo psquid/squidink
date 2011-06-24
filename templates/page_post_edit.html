@@ -17,6 +17,10 @@
     <p><label for="body">Post content</label>
     {% endif %}
     <textarea name="body">{{ preset_body }}</textarea></p>
+    {% if is_page %}
+    <p><label for="list_page">show in nav-bar</label>
+    <input type="checkbox" name="list_page"{% if preset_listpage %} checked{% endif %} /></p>
+    {% endif %}
     <p><label for="submit"></label>
     <button type="submit" name="submit">{{ action_name }}</button></p>
 </form>

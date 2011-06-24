@@ -273,9 +273,11 @@ form label {
     width: 15%;
 }
 
-input, select, textarea, button {
+input:not([type="checkbox"]), select, textarea, button {
     min-width: 100%;
     width: 100%;
+}
+input, select, textarea, button {
     padding: 4px 0;
     display: table-cell;
     border: 0px;
@@ -300,11 +302,6 @@ button, a.pseudo_button {
 
 textarea {
     min-height: 130px;
-}
-
-form.semifill
-{
-    width: 50%;
 }
 
 input.submit {

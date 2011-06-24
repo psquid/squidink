@@ -6,7 +6,7 @@
 <p class="error">{{ error }}</p>
 {% endif %}
 <p>Are you sure you want to delete this {{ item_type }}? Click the delete button within 60 seconds if you're sure, otherwise <a href="{{ url_for("show_posts") }}">go home</a>.</p>
-<form action="{{ action_url }}" method="post" class="semifill">
+<form action="{{ action_url }}" method="post">
     <input type="hidden" name="confirm_nonce" value="{{ confirm_nonce }}" />
     <p><button type="submit" name="submit">{{ action_name }}</button></p>
 </form>
