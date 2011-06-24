@@ -514,11 +514,11 @@ def login():
     if not g.logged_in:
         if request.method == "POST":
             try:
-                tries = int(g.db.get("users:{0}:pw_tries".format(request.form["username"].lower())))
+                tries = int(g.db.get(KEY_BASE+"users:{0}:pw_tries".format(request.form["username"].lower())))
             except TypeError:
                 tries = 0
             if tries >= 5:
-                secs_left = g.db.ttl("users:{0}:pw_tries".format(request.form["username"].lower()))
+                secs_left = g.db.ttl(KEY_BASE+"users:{0}:pw_tries".format(request.form["username"].lower()))
                 min_left, secs_left = (secs_left - (secs_left % 60))/60, secs_left % 60
                 return render_template("login_register.html",
                         action_name="Login", action_url=url_for("login"),
@@ -531,8 +531,8 @@ def login():
                     session["username"] = request.form["username"].lower()
                     return redirect(request.form["return_to"])
                 else:
-                    trues = g.db.incr("users:{0}:pw_tries".format(request.form["username"].lower()))
-                    g.db.expire("users:{0}:pw_tries".format(request.form["username"].lower()), 15*60)
+                    trues = g.db.incr(KEY_BASE+"users:{0}:pw_tries".format(request.form["username"].lower()))
+                    g.db.expire(KEY_BASE+"users:{0}:pw_tries".format(request.form["username"].lower()), 15*60)
                     return render_template("login_register.html",
                             action_name="Login", action_url=url_for("login"),
                             preset_username=request.form["username"],
