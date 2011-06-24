@@ -1,5 +1,5 @@
 {% extends "full_page.html" %}
-{% block title %}{{ action_name }} :: {{ site_name }}{% endblock %}
+{% block title %}{{ action_name }} :: {{ g.site_name }}{% endblock %}
 {% block page_title %}{{ action_name }}{% endblock %}
 {% block page_body %}
 {% if error %}
@@ -10,6 +10,7 @@
     <input type="text" name="username" value="{{ preset_username }}" /></p>
     <p><label for="password">Password</label>
     <input type="password" name="password" /></p>
+    <input type="hidden" name="return_to" value="{{ return_to }}" />
     <p><label for="submit"></label>
     <button type="submit" name="submit">{{ action_name }}</button></p>
 </form>

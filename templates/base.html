@@ -2,26 +2,26 @@
 <html lang="en">
     <head>
         {% block head %}
-        <title>{% block title %}{{ site_name }}{% endblock %}</title>
+        <title>{% block title %}{{ g.site_name }}{% endblock %}</title>
         <link rel="stylesheet" href="{{ url_for("static", filename="ink_n_mustard.css") }}" media="screen" />
         <link href='http://fonts.googleapis.com/css?family=Cantarell:regular,italic,bold,bolditalic&v1' rel='stylesheet' type='text/css'>
-        <link rel="alternate" type="application/rss+xml" title="{{ site_name }}" href="{{ url_for("rss_posts") }}" />
+        <link rel="alternate" type="application/rss+xml" title="{{ g.site_name }}" href="{{ url_for("rss_posts") }}" />
         <meta charset="UTF-8">
         {% endblock %}
     </head>
     <body>
         <header>
-            <h1>{{ site_name }}</h1>
+            <h1>{{ g.site_name }}</h1>
         </header>
         <nav>
             <ul>
-            {% for item in navigation %}
+            {% for item in g.nav %}
                 <li><a href="{{item.href}}">{{item.text}}</a></li>
             {% endfor %}
                 <ul class="nav_right">
-                    {% if user_is_admin %}
-                    <li class="config"><a href="/admin">Admin</a></li>
-                    {% elif username != "" %}
+                    {% if g.user_is_admin %}
+                    <li class="config"><a href="/config">Admin</a></li>
+                    {% elif g.logged_in %}
                     <li class="config"><a href="/config">Preferences</a></li>
                     {% endif %}
                     <li class="rss"><a href="{{ url_for("rss_posts") }}">RSS feed</a></li>
@@ -33,41 +33,29 @@
             {% endblock %}
             {% block sidebar %}
             <aside id="sidebar">
-            {% if username == "" %}
-                <section id="login">
-                    <form action="{{ url_for("login") }}" method="post">
-                        <p>
-                            <label for="username">Username</label>
-                            <input type="text" name="username" />
-                        </p>
-                        <p>
-                            <label for="password">Password</label>
-                            <input type="password" name="password" />
-                        </p>
-                        <p>
-                            <label for="submit"></label>
-                            <button type="submit" name="submit">Login</button>
-                        </p>
-                    </form>
-                    <p class="right">or <a href="{{ url_for("new_user") }}">register a new account</a></p>
-                </section>
-            {% else %}
-                <section id="logout">
-                    <p>Logged in as {{ username }} (<a href="{{ url_for("logout") }}">log out</a>)</p>
-                </section>
-            {% endif %}
-            {% for section in sidebar_sections %}
+            {% for section in g.sidebar_sections %}
                 <section id="{{ section.title }}">
                     <header>
                         <h3>{{ section.title }}</h3>
                     </header>
-                    <ul>
-                    {% for link in section.links %}
+                    <ul class="links">
+                    {% for item in section.links %}
                         <li><a href="{{item.href}}">{{item.text}}</a></li>
                     {% endfor %}
                     </ul>
                 </section>
             {% endfor %}
+            </aside>
+            {% endblock %}
+            {% block topbar %}
+            <aside id="topbar">
+                <p>
+                {% if g.logged_in %}
+                    logged in as <a href="/user/{{g.username}}">{{g.username}}</a> (<a href="{{ url_for("logout", return_to=g.current_url) }}">logout</a>)
+                {% else %}
+                    <a href="{{ url_for("login", return_to=g.current_url) }}">login</a> | <a href="{{ url_for("new_user", return_to=g.current_url) }}">register</a>
+                {% endif %}
+                </p>
             </aside>
             {% endblock %}
         </div>

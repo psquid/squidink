@@ -88,13 +88,23 @@ nav ul li a:link, nav ul li a:visited {
         padding-right: 20px;
     }
 
-    aside {
+    aside#sidebar {
         display: table-cell;
         width: 270px;
         padding: 8px 20px 5px;
         border-radius: 10px;
         -moz-border-radius: 10px;
         -webkit-border-radius: 10px;
+    }
+
+    aside#topbar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 8px 8px 0;
+        border-bottom-left-radius: 10px;
+        -moz-border-radius-bottomleft: 10px;
+        -webkit-border-bottom-left-radius: 10px;
     }
 
 article.post, article.page {
@@ -124,9 +134,9 @@ article.comment {
     background: #3c3c3c;
     padding: 5px;
     margin-bottom: 6px;
-    border-radius: 5px;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
 }
 article.comment:nth-of-type(odd) {
     background: #3c3c3c;

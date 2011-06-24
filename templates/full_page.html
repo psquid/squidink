@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if title == "" %}{{ site_name }}{% else %}{{ title }} :: {{ site_name }}{% endif %}{% endblock %}
+{% block title %}{% if title == "" %}{{ g.site_name }}{% else %}{{ title }} :: {{ g.site_name }}{% endif %}{% endblock %}
 {% block head %}
 {{ super() }}
     <link rel="stylesheet" href="{{ url_for("static", filename="ink_n_mustard_full_page.css") }}" media="screen" />

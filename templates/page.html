@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{% if title == "" %}{{ site_name }}{% else %}{{ title }} :: {{ site_name }}{% endif %}{% endblock %}
+{% block title %}{% if title == "" %}{{ g.site_name }}{% else %}{{ title }} :: {{ g.site_name }}{% endif %}{% endblock %}
 {% block content_body %}
 <section id="page_wrapper">
     <article class="page">
         <header>
             <h2>{{ page.title }}</h2>
-            {% if user_is_admin %}
+            {% if g.user_is_admin %}
             <p>
             <a href="{{ url_for("edit_page", page_slug=page.slug) }}">edit</a>
             | <a href="{{ url_for("delete_page", page_slug=page.slug) }}">delete</a>

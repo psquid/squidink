@@ -1,0 +1,21 @@
+{% extends "full_page.html" %}
+{% block title %}{% if g.user_is_admin %}Administration{% else %}Preferences{% endif %} :: {{ g.site_name }}{% endblock %}
+{% block page_title %}{% if g.user_is_admin %}Administration{% else %}Preferences{% endif %}{% endblock %}
+{% block page_body %}
+<section id="password">
+    <header>
+        <h3>Change password</h3>
+    </header>
+    {% if password_error %}
+    <p class="error">{{ password_error }}</p>
+    {% endif %}
+    <form action="{{ url_for("change_password", return_to=g.current_url) }}" method="post">
+        <p><label for="oldpassword">Old password</label>
+        <input type="password" name="oldpassword" /></p>
+        <p><label for="newpassword">New password</label>
+        <input type="password" name="newpassword" /></p>
+        <p><label for="submit"></label>
+        <button type="submit" name="submit">Change password</button></p>
+    </form>
+</section>
+{% endblock %}

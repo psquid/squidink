@@ -47,6 +47,19 @@ def prepare_globals():
             ])
     else:
         g.user_is_admin = False
+    g.sidebar_sections = []
+    for sidebar_section in list(g.db.smembers(KEY_BASE+"sidebar:sections")):
+        items = []
+        for sidebar_item in list(g.db.smembers(KEY_BASE+"sidebar:section:{0}:links".format(sidebar_section))):
+            items.append({
+                "text": g.db.get(KEY_BASE+"sidebar:section:{0}:link:{1}:title".format(sidebar_section, sidebar_item)),
+                "href": g.db.get(KEY_BASE+"sidebar:section:{0}:link:{1}:url".format(sidebar_section, sidebar_item))
+                })
+        g.sidebar_sections.append({
+            "title": g.db.get(KEY_BASE+"sidebar:section:{0}:title".format(sidebar_section)),
+            "links": items
+            })
+    g.current_url = request.path
 
 @app.route("/favicon.ico")
 def redirect_favicon():
@@ -57,6 +70,9 @@ def build_nonce(nonce_length=32):
     for index in xrange(nonce_length):
         nonce += random.choice(NONCE_CHARS)
     return nonce
+
+def password_hash(password):  # we do this here so we can change the hash method throughout if necessary
+    return md5(md5(password).hexdigest()).hexdigest()
 
 def format_comment(comment):
     RE_STRONGEM = re.compile("([_*]{3}.+[_*]{3})")
@@ -141,9 +157,7 @@ def show_posts(page_num=1):
             })
 
     return render_template("posts.html", title="", posts=posts,
-            nav_newer=nav_newer, nav_older=nav_older, multi_post=True,
-            site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
-            username=g.username, user_is_admin=g.user_is_admin)
+            nav_newer=nav_newer, nav_older=nav_older, multi_post=True)
 
 @app.route("/rss")
 def rss_posts():
@@ -185,14 +199,13 @@ def new_post():
         else:
             return render_template("page_post_edit.html",
                     action_name="Create post", action_url=url_for("new_post"),
-                    site_name=g.site_name, navigation=g.nav, is_page=False)
+                    is_page=False)
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to create posts.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/post/<int:post_id>/edit", methods=['GET', 'POST'])
 def edit_post(post_id):
@@ -206,7 +219,7 @@ def edit_post(post_id):
             else:
                 return render_template("page_post_edit.html",
                         action_name="Edit post", action_url=url_for("edit_post", post_id=post_id),
-                        site_name=g.site_name, navigation=g.nav, is_page=False,
+                        is_page=False,
                         preset_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
                         preset_body=g.db.get(KEY_BASE+"post:{0}:body".format(post_id)))
         else:
@@ -214,15 +227,13 @@ def edit_post(post_id):
                     page={
                         "title": "Error",
                         "body": g.md.convert("No such post exists.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 404
+                        }), 404
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to edit posts.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/post/<int:post_id>/delete", methods=['GET', 'POST'])
 def delete_post(post_id):
@@ -241,35 +252,31 @@ def delete_post(post_id):
                             page={
                                 "title": "Error",
                                 "body": g.md.convert("Delete request contained invalid confirmation code.")
-                                },
-                            site_name=g.site_name, navigation=g.nav), 403
+                                }), 403
                 else:
                     return render_template("full_page.html", title="Bad delete request",
                             page={
                                 "title": "Error",
                                 "body": g.md.convert("Delete request expired.")
-                                },
-                            site_name=g.site_name, navigation=g.nav), 403
+                                }), 403
             else:
                 confirm_nonce = build_nonce()
                 g.db.setex(KEY_BASE+"post:{0}:delete_nonce".format(post_id), confirm_nonce, 60)
                 return render_template("item_delete.html", item_type="post", item_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
                         action_name="Delete post", action_url=url_for("delete_post", post_id=post_id),
-                        site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
+                        confirm_nonce=confirm_nonce)
         else:
             return render_template("full_page.html", title="Post not found",
                     page={
                         "title": "Error",
                         "body": g.md.convert("No such post exists.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 404
+                        }), 404
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to delete posts.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/post/<int:post_id>/comment", methods=['POST'])
 def post_comment(post_id):
@@ -285,8 +292,7 @@ def post_comment(post_id):
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not logged in. You must login to post comments.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/post/<int:post_id>/comment/<int:comment_id>/delete", methods=["POST", "GET"])
 def delete_comment(post_id, comment_id):
@@ -305,35 +311,31 @@ def delete_comment(post_id, comment_id):
                             page={
                                 "title": "Error",
                                 "body": g.md.convert("Delete request contained invalid confirmation code.")
-                                },
-                            site_name=g.site_name, navigation=g.nav), 403
+                                }), 403
                 else:
                     return render_template("full_page.html", title="Bad delete request",
                             page={
                                 "title": "Error",
                                 "body": g.md.convert("Delete request expired.")
-                                },
-                            site_name=g.site_name, navigation=g.nav), 403
+                                }), 403
             else:
                 confirm_nonce = build_nonce()
                 g.db.setex(KEY_BASE+"post:{0}:comment:{1}:delete_nonce".format(post_id, comment_id), confirm_nonce, 60)
                 return render_template("item_delete.html", item_type="comment",
                         action_name="Delete comment", action_url=url_for("delete_comment", post_id=post_id, comment_id=comment_id),
-                        site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
+                        confirm_nonce=confirm_nonce)
         else:
             return render_template("full_page.html", title="Comment not found",
                     page={
                         "title": "Error",
                         "body": g.md.convert("No such comment exists.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 404
+                        }), 404
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to delete comments.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/post/<int:post_id>")
 def show_post(post_id):
@@ -359,24 +361,21 @@ def show_post(post_id):
                     "comments": comments,
                     "num_comments": len(comments),
                     }],
-                site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
-                username=g.username, user_is_admin=g.user_is_admin, multi_post=False)
+                multi_post=False)
     else:
         if 0 < post_id < int(g.db.get(KEY_BASE+"post:next_id")):
             return render_template("full_page.html", title="Post deleted",
                     page={
                         "title": "Error",
                         "body": g.md.convert("Post was deleted.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 410
+                        }), 410
             return "This post was deleted.",
         else:
             return render_template("full_page.html", title="Post not found",
                     page={
                         "title": "Error",
                         "body": g.md.convert("No such post exists.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 404
+                        }), 404
 
 
 ### PAGES
@@ -391,8 +390,7 @@ def new_page():
                         page={
                             "title": "Error",
                             "body": g.md.convert("Invalid page slug.")
-                            },
-                        site_name=g.site_name, navigation=g.nav), 404
+                            }), 404
             elif not g.db.sismember(KEY_BASE+"pages", new_page_slug):
                 g.db.set(KEY_BASE+"page:{0}:title".format(new_page_slug), request.form["title"])
                 g.db.set(KEY_BASE+"page:{0}:body".format(new_page_slug), request.form["body"])
@@ -403,19 +401,17 @@ def new_page():
                         page={
                             "title": "Error",
                             "body": g.md.convert("Page slug already in use.")
-                            },
-                        site_name=g.site_name, navigation=g.nav), 404
+                            }), 404
         else:
             return render_template("page_post_edit.html",
                     action_name="Create page", action_url=url_for("new_page"),
-                    site_name=g.site_name, navigation=g.nav, is_page=True)
+                    is_page=True)
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to create pages.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/page/<page_slug>/edit", methods=['GET', 'POST'])
 def edit_page(page_slug):
@@ -434,7 +430,7 @@ def edit_page(page_slug):
             else:
                 return render_template("page_post_edit.html",
                         action_name="Edit page", action_url=url_for("edit_page", page_slug=page_slug),
-                        site_name=g.site_name, navigation=g.nav, is_page=True,
+                        is_page=True,
                         preset_title=g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
                         preset_slug=page_slug,
                         preset_body=g.db.get(KEY_BASE+"page:{0}:body".format(page_slug)))
@@ -443,15 +439,13 @@ def edit_page(page_slug):
                     page={
                         "title": "Error",
                         "body": g.md.convert("No such page exists.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 404
+                        }), 404
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to edit pages.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/page/<page_slug>/delete", methods=['GET', 'POST'])
 def delete_page(page_slug):
@@ -470,35 +464,31 @@ def delete_page(page_slug):
                             page={
                                 "title": "Error",
                                 "body": g.md.convert("Delete request contained invalid confirmation code.")
-                                },
-                            site_name=g.site_name, navigation=g.nav), 403
+                                }), 403
                 else:
                     return render_template("full_page.html", title="Bad delete request",
                             page={
                                 "title": "Error",
                                 "body": g.md.convert("Delete request expired.")
-                                },
-                            site_name=g.site_name, navigation=g.nav), 403
+                                }), 403
             else:
                 confirm_nonce = build_nonce()
                 g.db.setex(KEY_BASE+"page:{0}:delete_nonce".format(page_slug), confirm_nonce, 60)
                 return render_template("item_delete.html", item_type="page",
                         action_name="Delete page", action_url=url_for("delete_page", page_slug=page_slug),
-                        site_name=g.site_name, navigation=g.nav, confirm_nonce=confirm_nonce)
+                        confirm_nonce=confirm_nonce)
         else:
             return render_template("full_page.html", title="Page not found",
                     page={
                         "title": "Error",
                         "body": g.md.convert("No such page exists.")
-                        },
-                    site_name=g.site_name, navigation=g.nav), 404
+                        }), 404
     else:
         return render_template("full_page.html", title="Not allowed",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to delete pages.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/page/<page_slug>")
 def show_page(page_slug):
@@ -509,16 +499,13 @@ def show_page(page_slug):
                     "title": title,
                     "body": g.md.convert(g.db.get(KEY_BASE+"page:{0}:body".format(page_slug))),
                     "slug": page_slug
-                    },
-                site_name=g.site_name, sidebar_sections=[], navigation=g.nav,
-                username=g.username, user_is_admin=g.user_is_admin)
+                    })
     else:
         return render_template("full_page.html", title="Page not found",
                 page={
                     "title": "Error",
                     "body": g.md.convert("No such page exists.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 404
+                    }), 404
 
 
 ### AUTH
@@ -529,48 +516,82 @@ def login():
         if request.method == "POST":
             hashed_stored_pw = g.db.get(KEY_BASE+"users:{0}:hashed_pw".format(request.form["username"].lower()))
             if hashed_stored_pw is not None:
-                hashed_request_pw = md5(md5(request.form["password"]).hexdigest()).hexdigest()
+                hashed_request_pw = password_hash(request.form["password"])
                 if hashed_stored_pw == hashed_request_pw:
                     session["username"] = request.form["username"].lower()
-                    return redirect(url_for("show_posts"))
+                    return redirect(request.form["return_to"])
                 else:
                     return render_template("login_register.html",
                             action_name="Login", action_url=url_for("login"),
-                            site_name=g.site_name, navigation=g.nav,
                             preset_username=request.form["username"],
+                            return_to=request.form["return_to"],
                             error="Incorrect password.")
             else:
                 return render_template("login_register.html",
                         action_name="Login", action_url=url_for("login"),
-                        site_name=g.site_name, navigation=g.nav,
+                        return_to=request.form["return_to"],
                         error="No such user.")
         else:
             return render_template("login_register.html",
                     action_name="Login", action_url=url_for("login"),
-                    site_name=g.site_name, navigation=g.nav)
+                    return_to=request.args.get("return_to", url_for("show_posts")))
     else:
         return render_template("full_page.html", title="Already logged in",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You're already logged in.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 @app.route("/logout")
 def logout():
     if g.logged_in:
         del session["username"]
-        return redirect("/")
+        return redirect(request.args.get("return_to", url_for("show_posts")))
     else:
         return render_template("full_page.html", title="Not logged in",
                 page={
                     "title": "Error",
                     "body": g.md.convert("You're not logged in.")
-                    },
-                site_name=g.site_name, navigation=g.nav), 403
+                    }), 403
 
 
 ### USERS
+
+@app.route("/config")
+def show_config():
+    if g.logged_in:
+        return render_template("config.html")
+    else:
+        return render_template("full_page.html", title="Not logged in",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You're not logged in.")
+                    }), 403
+
+@app.route("/config/password", methods=['POST','GET'])
+def change_password():
+    if request.method == "POST":
+        if g.logged_in:
+            old_hash = password_hash(request.form["oldpassword"])
+            stored_hash = g.db.get(KEY_BASE+"users:{0}:hashed_pw".format(g.username))
+            if old_hash == stored_hash:
+                new_pass = request.form["newpassword"].strip()
+                if len(new_pass) > 0:
+                    new_hash = password_hash(request.form["newpassword"])
+                    g.db.set(KEY_BASE+"users:{0}:hashed_pw".format(g.username), new_hash)
+                    return render_template("full_page.html", title="Success",
+                            page={
+                                "title": "Success!",
+                                "body": g.md.convert("Password successfully changed.")
+                            })
+                else:
+                    return render_template("config.html",
+                            password_error="Password cannot be blank.")
+            else:
+                return render_template("config.html",
+                        password_error="Old password incorrect.")
+    else:
+        return redirect(url_for("show_config"))
 
 @app.route("/user/new", methods=['GET', 'POST'])
 def new_user():
@@ -579,39 +600,36 @@ def new_user():
         if username in ["new", "delete", ""]:  #reserved words, cannot be usernames; empty name also
             return render_template("login_register.html",
                     action_name="Register", action_url=url_for("new_user"),
-                    site_name=g.site_name, navigation=g.nav,
                     error="That username is invalid.")
         elif not g.db.sismember(KEY_BASE+"users", username):
-            password = request.form["password"].strip().lower()
+            password = request.form["password"].strip()
             if len(password) > 0:
                 g.db.sadd(KEY_BASE+"users", username)
                 g.db.set(KEY_BASE+"users:{0}:hashed_pw".format(username),
-                        md5(md5(request.form["password"]).hexdigest()).hexdigest())
+                        password_hash(request.form["password"]))
                 if "username" in session:
                     return render_template("full_page.html", title="Success",
                             page={
                                 "title": "Success!",
                                 "body": g.md.convert("Created user *{0}*.".format(username))
-                            },
-                            site_name=g.site_name, navigation=g.nav)
+                            })
                 else:
                     session["username"] = username
-                    return redirect("/")
+                    return redirect(request.form["return_to"])
             else:
                 return render_template("login_register.html",
                         action_name="Register", action_url=url_for("new_user"),
-                        site_name=g.site_name, navigation=g.nav,
-                        preset_username=username,
+                        preset_username=username, return_to=request.form["return_to"],
                         error="Password cannot be blank.")
         else:
             return render_template("login_register.html",
                     action_name="Register", action_url=url_for("new_user"),
-                    site_name=g.site_name, navigation=g.nav,
+                    return_to=request.form["return_to"],
                     error="That username is already taken.")
     else:
         return render_template("login_register.html",
                 action_name="Register", action_url=url_for("new_user"),
-                site_name=g.site_name, navigation=g.nav)
+                return_to=request.args.get("return_to", url_for("show_posts")))
 
 if __name__ == "__main__":
     app.secret_key = ",j\x16!|5@\x8a\xe6&tLt\xd3\xd7\x00s\xaa[|\x89\xee\xe7-"  # required for session use
