@@ -97,6 +97,10 @@ nav ul li a:link, nav ul li a:visited {
         -webkit-border-radius: 10px;
     }
 
+    aside#sidebar ul.links {
+        list-style: none;
+    }
+
     aside#topbar {
         position: absolute;
         top: 0;
@@ -269,7 +273,7 @@ form label {
     width: 15%;
 }
 
-input, textarea, button {
+input, select, textarea, button {
     min-width: 100%;
     width: 100%;
     display: table-cell;

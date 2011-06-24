@@ -53,11 +53,13 @@ def prepare_globals():
         for sidebar_item in list(g.db.smembers(KEY_BASE+"sidebar:section:{0}:links".format(sidebar_section))):
             items.append({
                 "text": g.db.get(KEY_BASE+"sidebar:section:{0}:link:{1}:title".format(sidebar_section, sidebar_item)),
-                "href": g.db.get(KEY_BASE+"sidebar:section:{0}:link:{1}:url".format(sidebar_section, sidebar_item))
+                "href": g.db.get(KEY_BASE+"sidebar:section:{0}:link:{1}:url".format(sidebar_section, sidebar_item)),
+                "id": sidebar_item
                 })
         g.sidebar_sections.append({
             "title": g.db.get(KEY_BASE+"sidebar:section:{0}:title".format(sidebar_section)),
-            "links": items
+            "links": items,
+            "id": sidebar_section
             })
     g.current_url = request.path
 
@@ -565,6 +567,45 @@ def logout():
                 page={
                     "title": "Error",
                     "body": g.md.convert("You're not logged in.")
+                    }), 403
+
+
+### SIDEBAR ITEMS
+
+@app.route("/sidebar/section/new", methods=['POST'])
+def sidebar_new_section():
+    if g.user_is_admin:
+        next_section_id = g.db.incr(KEY_BASE+"sidebar:section:next_id")
+        g.db.sadd(KEY_BASE+"sidebar:sections", next_section_id)
+        g.db.set(KEY_BASE+"sidebar:section:{0}:title".format(next_section_id), request.form["title"])
+        return redirect(request.args.get("return_to", url_for("show_config")))
+    else:
+        return render_template("full_page.html", title="Not allowed",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You are not allowed to add sidebar sections.")
+                    }), 403
+
+@app.route("/sidebar/item/new", methods=['POST'])
+def sidebar_new_item():
+    if g.user_is_admin:
+        section_id = request.form["section"]
+        if not g.db.sismember(KEY_BASE+"sidebar:sections", section_id):
+            return render_template("full_page.html", title="Bad section",
+                    page={
+                        "title": "Error",
+                        "body": g.md.convert("Selected section invalid, or no section selected.")
+                        })
+        next_item_id = g.db.incr(KEY_BASE+"sidebar:section:{0}:link:next_id".format(section_id))
+        g.db.sadd(KEY_BASE+"sidebar:section:{0}:links".format(section_id), next_item_id)
+        g.db.set(KEY_BASE+"sidebar:section:{0}:link:{1}:title".format(section_id, next_item_id), request.form["title"])
+        g.db.set(KEY_BASE+"sidebar:section:{0}:link:{1}:url".format(section_id, next_item_id), request.form["url"])
+        return redirect(request.args.get("return_to", url_for("show_config")))
+    else:
+        return render_template("full_page.html", title="Not allowed",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You are not allowed to add sidebar sections.")
                     }), 403
 
 

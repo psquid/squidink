@@ -18,4 +18,34 @@
         <button type="submit" name="submit">Change password</button></p>
     </form>
 </section>
+{% if g.user_is_admin %}
+<section id="sidebar_config">
+    <header>
+        <h3>Sidebar</h3>
+    </header>
+    {% if sidebar_error %}
+    <p class="error">{{ sidebar_error }}</p>
+    {% endif %}
+    <form action="{{ url_for("sidebar_new_section", return_to=g.current_url) }}" method="post">
+        <p><label for="title">Section title</label>
+        <input type="text" name="title" /></p>
+        <p><label for="submit"></label>
+        <button type="submit" name="submit">New section</button></p>
+    </form>
+    <form action="{{ url_for("sidebar_new_item", return_to=g.current_url) }}" method="post">
+        <p><label for="section">Section</label>
+        <select name="section">
+            {% for section in g.sidebar_sections %}
+            <option value="{{ section.id }}">{{ section.title }}</option>
+            {% endfor %}
+        </select></p>
+        <p><label for="title">Item title</label>
+        <input type="text" name="title" /></p>
+        <p><label for="url">Item URL</label>
+        <input type="text" name="url" /></p>
+        <p><label for="submit"></label>
+        <button type="submit" name="submit">New item</button></p>
+    </form>
+</section>
+{% endif %}
 {% endblock %}
