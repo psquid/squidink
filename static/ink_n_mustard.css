@@ -285,16 +285,16 @@ button, a.pseudo_button {
     text-align: center;
     margin-top: 6px;
     padding: 4px;
-    background: #1f1f1f;
-    color: #f0b000;
+    background: #1f1f1f !important;
+    color: #f0b000 !important;
     border: 0px;
     font: 13px/150% Cantarell, Helvetica, Arial, sans-serif;
     font-weight: bold;
     cursor: pointer;
 }
-    button:hover {
-        background: #f0b000;
-        color: #0f0f0f;
+    button:hover, a.pseudo_button:hover {
+        background: #f0b000 !important;
+        color: #0f0f0f !important;
     }
 
 textarea {

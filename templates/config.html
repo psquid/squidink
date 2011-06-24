@@ -19,6 +19,13 @@
     </form>
 </section>
 {% if g.user_is_admin %}
+<section id="posting">
+    <header>
+        <h3>Posting</h3>
+    </header>
+    <a class="pseudo_button" href="{{ url_for("new_post") }}">New post</a>
+    <a class="pseudo_button" href="{{ url_for("new_page") }}">New page</a>
+</section>
 <section id="sidebar_config">
     <header>
         <h3>Sidebar</h3>

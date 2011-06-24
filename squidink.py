@@ -39,14 +39,6 @@ def prepare_globals():
             "text": g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
             "href": url_for("show_page", page_slug=page_slug)
             })
-    if g.db.sismember(KEY_BASE+"admins", g.username):
-        g.user_is_admin = True
-        g.nav.extend([
-            {"text": "New post", "href": "/post/new"},
-            {"text": "New page", "href": "/page/new"},
-            ])
-    else:
-        g.user_is_admin = False
     g.sidebar_sections = []
     for sidebar_section in list(g.db.smembers(KEY_BASE+"sidebar:sections")):
         items = []
@@ -62,6 +54,10 @@ def prepare_globals():
             "id": sidebar_section
             })
     g.current_url = request.path
+    if g.db.sismember(KEY_BASE+"admins", g.username):
+        g.user_is_admin = True
+    else:
+        g.user_is_admin = False
 
 @app.route("/favicon.ico")
 def redirect_favicon():
