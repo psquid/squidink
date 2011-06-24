@@ -54,5 +54,13 @@
         <button type="submit" name="submit">New item</button></p>
     </form>
 </section>
+<section id="user_config">
+    <header>
+        <h3>Users</h3>
+    </header>
+    {% for username in users %}
+    <p>{{ username }} (<a href="{{ url_for("delete_user", username=username) }}">delete</a>)</p>
+    {% endfor %}
+</section>
 {% endif %}
 {% endblock %}

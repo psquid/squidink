@@ -51,7 +51,7 @@
             <aside id="topbar">
                 <p>
                 {% if g.logged_in %}
-                    logged in as <a href="/user/{{g.username}}">{{g.username}}</a> (<a href="{{ url_for("logout", return_to=g.current_url) }}">logout</a>)
+                    logged in as {{g.username}} (<a href="{{ url_for("logout", return_to=g.current_url) }}">logout</a>)
                 {% else %}
                     <a href="{{ url_for("login", return_to=g.current_url) }}">login</a> | <a href="{{ url_for("new_user", return_to=g.current_url) }}">register</a>
                 {% endif %}

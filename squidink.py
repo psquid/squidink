@@ -119,6 +119,7 @@ def format_comment(comment):
         formatted_comment += Markup("</p>\n")
     return formatted_comment
 
+
 ### POSTS
 
 @app.route("/")
@@ -609,7 +610,9 @@ def sidebar_new_item():
 
 @app.route("/config")
 def show_config():
-    if g.logged_in:
+    if g.user_is_admin:
+        return render_template("config.html", users=list(g.db.smembers(KEY_BASE+"users")))
+    elif g.logged_in:
         return render_template("config.html")
     else:
         return render_template("full_page.html", title="Not logged in",
@@ -680,6 +683,50 @@ def new_user():
         return render_template("login_register.html",
                 action_name="Register", action_url=url_for("new_user"),
                 return_to=request.args.get("return_to", url_for("show_posts")))
+
+@app.route("/user/<username>/delete", methods=['GET', 'POST'])
+def delete_user(username):
+    if g.user_is_admin:
+        if g.db.sismember(KEY_BASE+"users", username):
+            if request.method == "POST":
+                confirm_nonce = request.form["confirm_nonce"]
+                stored_nonce = g.db.get(KEY_BASE+"user:{0}:delete_nonce".format(username))
+                if confirm_nonce == stored_nonce:
+                    for key in g.db.keys(KEY_BASE+"user:{0}:*".format(username)):
+                        g.db.delete(key)
+                    g.db.srem(KEY_BASE+"users", username)
+                    return redirect(url_for("show_config"))
+                elif stored_nonce is not None:
+                    return render_template("full_page.html", title="Bad delete request",
+                            page={
+                                "title": "Error",
+                                "body": g.md.convert("Delete request contained invalid confirmation code.")
+                                }), 403
+                else:
+                    return render_template("full_page.html", title="Bad delete request",
+                            page={
+                                "title": "Error",
+                                "body": g.md.convert("Delete request expired.")
+                                }), 403
+            else:
+                confirm_nonce = build_nonce()
+                g.db.setex(KEY_BASE+"user:{0}:delete_nonce".format(username), confirm_nonce, 60)
+                return render_template("item_delete.html", item_type="user",
+                        action_name="Delete user", action_url=url_for("delete_user", username=username),
+                        confirm_nonce=confirm_nonce)
+        else:
+            return render_template("full_page.html", title="User not found",
+                    page={
+                        "title": "Error",
+                        "body": g.md.convert("No such user found.")
+                        }), 404
+    else:
+        return render_template("full_page.html", title="Not allowed",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You are not allowed to delete this user.")
+                    }), 403
+
 
 if __name__ == "__main__":
     app.secret_key = ",j\x16!|5@\x8a\xe6&tLt\xd3\xd7\x00s\xaa[|\x89\xee\xe7-"  # required for session use
