@@ -618,7 +618,15 @@ def sidebar_new_item():
 @app.route("/config")
 def show_config():
     if g.user_is_admin:
-        return render_template("config.html", users=list(g.db.smembers(KEY_BASE+"users")))
+        unlisted_pages = []
+        for page_slug in list(g.db.smembers(KEY_BASE+"pages")):
+            if g.db.get(KEY_BASE+"page:{0}:skip_listing".format(page_slug)) is not None:
+                unlisted_pages.append({
+                    "text": g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
+                    "slug": page_slug
+                    })
+        return render_template("config.html", users=list(g.db.smembers(KEY_BASE+"users")),
+                unlisted_pages=unlisted_pages)
     elif g.logged_in:
         return render_template("config.html")
     else:

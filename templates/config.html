@@ -19,12 +19,22 @@
     </form>
 </section>
 {% if g.user_is_admin %}
-<section id="posting">
+<section id="posts_pages">
     <header>
-        <h3>Posting</h3>
+        <h3>Posts/pages</h3>
     </header>
-    <a class="pseudo_button" href="{{ url_for("new_post") }}">New post</a>
-    <a class="pseudo_button" href="{{ url_for("new_page") }}">New page</a>
+    <p>
+        <a class="pseudo_button" href="{{ url_for("new_post") }}">New post</a>
+        <a class="pseudo_button" href="{{ url_for("new_page") }}">New page</a>
+    </p>
+    {% if unlisted_pages %}
+    <header>
+        <strong>Unlisted pages:</strong>
+    </header>
+    {% for page in unlisted_pages %}
+    <p><a href="{{ url_for("show_page", page_slug=page.slug) }}">{{ page.text }}</a> (<a href="{{ url_for("delete_page", page_slug=page.slug) }}">delete</a>)</p>
+    {% endfor %}
+    {% endif %}
 </section>
 <section id="sidebar_config">
     <header>
