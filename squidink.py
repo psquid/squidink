@@ -281,12 +281,15 @@ def delete_post(post_id):
 @app.route("/post/<int:post_id>/comment", methods=['POST'])
 def post_comment(post_id):
     if g.logged_in:
-        new_comment_id = g.db.incr(KEY_BASE+"post:{0}:comment:next_id".format(post_id))
-        g.db.set(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, new_comment_id), g.username)
-        g.db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
-        g.db.set(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
-        g.db.rpush(KEY_BASE+"post:{0}:comments".format(post_id), new_comment_id)
-        return redirect(url_for("show_post", post_id=post_id)+"#comment-{0}".format(new_comment_id))
+        if request.form["comment"].strip() != "":
+            new_comment_id = g.db.incr(KEY_BASE+"post:{0}:comment:next_id".format(post_id))
+            g.db.set(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, new_comment_id), g.username)
+            g.db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
+            g.db.set(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
+            g.db.rpush(KEY_BASE+"post:{0}:comments".format(post_id), new_comment_id)
+            return redirect(url_for("show_post", post_id=post_id)+"#comment-{0}".format(new_comment_id))
+        else:
+            return redirect(url_for("show_post", post_id=post_id, comment_error="Comments cannot be empty.")+"#new-comment")
     else:
         return render_template("full_page.html", title="Not logged in",
                 page={
@@ -361,7 +364,7 @@ def show_post(post_id):
                     "comments": comments,
                     "num_comments": len(comments),
                     }],
-                multi_post=False)
+                multi_post=False, comment_error=request.args.get("comment_error", None))
     else:
         if 0 < post_id < int(g.db.get(KEY_BASE+"post:next_id")):
             return render_template("full_page.html", title="Post deleted",

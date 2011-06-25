@@ -55,9 +55,13 @@
             <p>No comments yet.</p>
             {% endif %}
             {% if g.logged_in %}
+            <a id="new-comment"></a>
             <h4>Post your own comment:</h4>
+            {% if comment_error %}
+            <p class="error">{{ comment_error }}</p>
+            {% endif %}
             <form action="{{ url_for("post_comment", post_id=post.id) }}" method="post">
-                <textarea name="comment"></textarea>
+                <textarea name="comment">{{ preset_comment }}</textarea>
                 <button type="submit" name="submit">Post comment</button>
             </form>
             {% else %}
