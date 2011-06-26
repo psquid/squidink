@@ -69,7 +69,7 @@
         <h3>Users</h3>
     </header>
     {% for username in users %}
-    <p>{{ username }} (<a href="{{ url_for("delete_user", username=username) }}">delete</a>)</p>
+    <p><a href="{{ url_for("show_user", username=username) }}">{{ username }}</a> (<a href="{{ url_for("delete_user", username=username) }}">delete</a>)</p>
     {% endfor %}
 </section>
 {% endif %}

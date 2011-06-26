@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ username }}'s profile :: {{ g.site_name }}{% endblock %}
+{% block content_body %}
+<section id="page_wrapper">
+    <article class="page">
+        <header>
+            <h2>{{ username }}</h2>
+        </header>
+        {% if latest_posts %}
+        <section id="latest_posts">
+            <header>
+                <h3>Latest posts</h3>
+            </header>
+            <ul>
+                {% for post in latest_posts %}
+                <li><a href="{{ url_for("show_post", post_id=post.id) }}">{{ post.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+        <section id="latest_comments">
+            <header>
+                <h3>Latest comments</h3>
+            </header>
+            {% if latest_comments %}
+            {% for comment in latest_comments %}
+            <article class="comment">
+                <header>
+                    <a id="comment-{{ comment.id }}"></a>
+                    <p>on <a href="{{ url_for("show_post", post_id=comment.post_id) }}">{{ comment.post_title }}</a>, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time>
+                    | <a href="{{ url_for("show_post", post_id=comment.post_id) }}#comment-{{ comment.id }}">permalink</a></p>
+                </header>
+                {{ comment.text|safe }}
+            </article>
+            {% endfor %}
+            {% else %}
+            <p>{{ username }} hasn't made any comments yet.</p>
+            {% endif %}
+        </section>
+    </article>
+</section>
+{% endblock %}

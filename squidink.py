@@ -82,7 +82,7 @@ def format_comment(comment):
         plain_text = matchobj.group(0)
         username = matchobj.group(1)
         if g.db.sismember(KEY_BASE+"users", username):
-            return "[{0}]({1})".format(plain_text, "/user/"+username)
+            return "[{0}]({1})".format(plain_text, url_for("show_user", username=username))
         else:
             return plain_text
     RE_STRONGEM = re.compile(r"[_*]{3}(.+?)[_*]{3}")
@@ -281,6 +281,7 @@ def post_comment(post_id):
             g.db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
             g.db.set(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
             g.db.rpush(KEY_BASE+"post:{0}:comments".format(post_id), new_comment_id)
+            g.db.lpush(KEY_BASE+"users:{0}:comments".format(g.username), "{0}:{1}".format(post_id, new_comment_id))
             return redirect(url_for("show_post", post_id=post_id)+"#comment-{0}".format(new_comment_id))
         else:
             return redirect(url_for("show_post", post_id=post_id, comment_error="Comments cannot be empty.")+"#new-comment")
@@ -695,6 +696,36 @@ def new_user():
         return render_template("login_register.html",
                 action_name="Register", action_url=url_for("new_user"),
                 return_to=request.args.get("return_to", url_for("show_posts")))
+
+@app.route("/user/<username>")
+def show_user(username):
+    if g.db.sismember(KEY_BASE+"users", username):
+        latest_posts = []
+        for post_id in g.db.lrange(KEY_BASE+"users:{0}:posts".format(username), 0, 4):
+            latest_posts.append({
+                "title": g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
+                "id": post_id,
+                })
+        latest_comments_raw = g.db.lrange(KEY_BASE+"users:{0}:comments".format(username), 0, 4)
+        latest_comments = []
+        for comment in latest_comments_raw:
+            post_id, comment_id = comment.split(":")
+            latest_comments.append({
+                "text": format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))),
+                "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
+                "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
+                "post_title": g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
+                "post_id": post_id,
+                "id": comment_id,
+                })
+        return render_template("user.html", username=username,
+                latest_comments=latest_comments, latest_posts=latest_posts)
+    else:
+        return render_template("full_page.html", title="User not found",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("No such user found.")
+                    }), 404
 
 @app.route("/user/<username>/delete", methods=['GET', 'POST'])
 def delete_user(username):

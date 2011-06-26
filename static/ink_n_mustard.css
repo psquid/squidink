@@ -322,3 +322,7 @@ p.error {
     color: #e05000;
     font-weight: bold;
 }
+
+#latest_posts ul {
+    list-style: none;
+}
