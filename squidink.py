@@ -121,13 +121,19 @@ def format_comment(comment):
 @app.route("/posts/<int:page_num>")
 def show_posts(page_num=1):
     posts_per_page = int(request.args.get("per_page", 10))
+    tag = request.args.get("tag", "")
 
-    post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
+    if tag != "":
+        post_ids = [int(id) for id in g.db.zrevrange(KEY_BASE+"tag:{0}:posts".format(tag), 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
+    else:
+        post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
+
     posts = []
 
     persist_args = {}
-    if "per_page" in request.args:
-        persist_args["per_page"] = request.args["per_page"]
+    for arg_name in ["per_page", "tag"]:
+        if arg_name in request.args:
+            persist_args[arg_name] = request.args[arg_name]
 
     if page_num > 1:
         nav_newer = url_for("show_posts", page_num=page_num-1, **persist_args)
@@ -147,7 +153,8 @@ def show_posts(page_num=1):
             "timestamp": g.db.get(KEY_BASE+"post:{0}:timestamp".format(id)),
             "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(id)), TIME_FMT).strftime(FANCY_TIME_FMT),
             "id": id,
-            "num_comments": g.db.llen(KEY_BASE+"post:{0}:comments".format(id))
+            "num_comments": g.db.llen(KEY_BASE+"post:{0}:comments".format(id)),
+            "tags": list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(id))),
             })
 
     return render_template("posts.html", title="", posts=posts,
@@ -156,8 +163,13 @@ def show_posts(page_num=1):
 @app.route("/rss")
 def rss_posts():
     posts_per_page = int(request.args.get("per_page", 10))
+    tag = request.args.get("tag", "")
 
-    post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0, posts_per_page-1)]
+    if tag != "":
+        post_ids = [int(id) for id in g.db.zrevrange(KEY_BASE+"tag:{0}:posts".format(tag), 0, posts_per_page-1)]
+    else:
+        post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0, posts_per_page-1)]
+
     posts = []
 
     for post_id in post_ids:
@@ -188,6 +200,10 @@ def new_post():
             g.db.set(KEY_BASE+"post:{0}:body".format(new_post_id), request.form["body"])
             g.db.set(KEY_BASE+"post:{0}:author".format(new_post_id), session["username"])
             g.db.set(KEY_BASE+"post:{0}:timestamp".format(new_post_id), datetime.utcnow().strftime(TIME_FMT))
+            tags = [tag.strip().lower() for tag in request.form["tags"].replace(":","").split(",") if tag != ""]
+            for tag in tags:
+                g.db.sadd(KEY_BASE+"post:{0}:tags".format(new_post_id), tag)
+                g.db.zadd(KEY_BASE+"tag:{0}:posts".format(tag), new_post_id, new_post_id)  # add post_id to tag's post sorted list, with itself as the key
             g.db.lpush(KEY_BASE+"posts", new_post_id)
             return redirect(url_for("show_post", post_id=new_post_id))
         else:
@@ -209,13 +225,23 @@ def edit_post(post_id):
                 g.db.set(KEY_BASE+"post:{0}:title".format(post_id), request.form["title"])
                 g.db.set(KEY_BASE+"post:{0}:body".format(post_id), request.form["body"])
                 g.db.set(KEY_BASE+"post:{0}:edit_timestamp".format(post_id), datetime.utcnow().strftime(TIME_FMT))
+                new_tags = [tag.strip().lower() for tag in request.form["tags"].replace(":","").split(",") if tag != ""]
+                old_tags = list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id)))
+                g.db.delete(KEY_BASE+"post:{0}:tags".format(post_id))  # clear out old tags
+                for old_tag in old_tags:  # and remove this post from tag lists it's no longer in
+                    if old_tag not in new_tags:
+                        g.db.zrem(KEY_BASE+"tag:{0}:posts".format(old_tag), post_id)
+                for new_tag in new_tags:
+                    g.db.sadd(KEY_BASE+"post:{0}:tags".format(post_id), new_tag)
+                    g.db.zadd(KEY_BASE+"tag:{0}:posts".format(new_tag), post_id, post_id)  # add post_id to tag's post sorted list, with itself as the key
                 return redirect(url_for("show_post", post_id=post_id))
             else:
                 return render_template("page_post_edit.html",
                         action_name="Edit post", action_url=url_for("edit_post", post_id=post_id),
                         is_page=False,
                         preset_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
-                        preset_body=g.db.get(KEY_BASE+"post:{0}:body".format(post_id)))
+                        preset_body=g.db.get(KEY_BASE+"post:{0}:body".format(post_id)),
+                        preset_tags=", ".join(list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id)))))
         else:
             return render_template("full_page.html", title="Post not found",
                     page={
@@ -358,6 +384,7 @@ def show_post(post_id):
                     "id": post_id,
                     "comments": comments,
                     "num_comments": len(comments),
+                    "tags": list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id))),
                     }],
                 multi_post=False, comment_error=request.args.get("comment_error", None))
     else:

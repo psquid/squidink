@@ -16,7 +16,7 @@ body {
     overflow-y: scroll;
 }
 
-footer, aside, body>nav {
+body>footer, aside, body>nav {
     background: #0f0f0f;
 }
 
@@ -165,14 +165,14 @@ article.comment:nth-of-type(even) {
         left: 20px;
     }
 
-footer {
+body>footer {
     margin: 20px 0 18px;
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
     padding: 6px 20px;
 }
-    footer p {
+    body>footer p {
         text-align: center;
         padding-bottom: 0px;
     }
@@ -325,4 +325,21 @@ p.error {
 
 #latest_posts ul {
     list-style: none;
+}
+
+article.post footer {
+    font-size: 11px; 
+    color: #808080;
+    line-height: 100%;
+    padding: 5px 0 5px;
+}
+
+#tags ul {
+    text-align: right;
+    list-style: none;
+}
+
+#tags ul li {
+    display: inline;
+    margin-left: 4px;
 }

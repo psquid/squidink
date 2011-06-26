@@ -31,6 +31,20 @@
             </p>
         </header>
         {{ post.body|safe }}
+        {% if post.tags or post.nav_older or post.nav_newer %}
+        <footer>
+            {% if post.tags %}
+            <section id="tags">
+                <ul>
+                tagged:
+                    {% for tag in post.tags %}
+                    <li><a href="{{ url_for("show_posts", tag=tag) }}">{{ tag }}</a></li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+        </footer>
+        {% endif %}
         {% if not multi_post %}
         <section id="comments">
             <header>
