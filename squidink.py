@@ -82,7 +82,7 @@ def format_comment(comment):
     RE_STRONG = re.compile(r"[_*]{2}(.+?)[_*]{2}")
     RE_EM = re.compile(r"[_*](.+?)[_*]")
     RE_LINK = re.compile(r"\[(.+?)\]\(((http[s]?|/).+?)\)")
-    RE_URL = re.compile(r"[^(\[](http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)[^)\]]")  # the opening and closing bits are to avoid matching urls already enclosed in []() links
+    RE_URL = re.compile(r"([^(\[])(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)([^)\]])")  # the opening and closing bits are to avoid matching urls already enclosed in []() links
     comment = escape(comment.replace("\r\n", "\n"))
     # split comment into paragraphs
     comment = "<p>"+"</p>\n<p>".join(comment.split("\n\n"))+"</p>\n"
@@ -95,7 +95,7 @@ def format_comment(comment):
         comment = comment.replace("<{0}>".format(tag), " <{0}> ".format(tag))
         comment = comment.replace("</{0}>".format(tag), " </{0}> ".format(tag))
     # turn bare urls into proper link syntax
-    comment = RE_URL.sub("[\\1](\\1)", comment)
+    comment = RE_URL.sub("\\1[\\2](\\2)\\3", comment)
     # and now remove the spaces
     for tag in ["p", "strong", "em"]:
         comment = comment.replace(" <{0}> ".format(tag), "<{0}>".format(tag))
