@@ -149,18 +149,18 @@ article.comment:nth-of-type(even) {
     background: #4a4a4a;
 }
 
-#posts nav {
+#posts > nav {
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
     padding: 0px 20px 10px;
     position: relative;
 }
-    #posts nav .nav_older {
+    #posts > nav .nav_older {
         position: absolute;
         right: 20px;
     }
-    #posts nav .nav_newer {
+    #posts > nav .nav_newer {
         position: absolute;
         left: 20px;
     }
@@ -343,3 +343,15 @@ article.post footer {
     display: inline;
     margin-left: 6px;
 }
+
+article.post > nav {
+    overflow: visible;
+}
+    article.post nav .nav_older {
+        float: right;
+        text-align: right;
+        margin-bottom: 10px;
+    }
+    article.post nav .nav_newer {
+        float: left;
+    }

@@ -46,6 +46,17 @@
         </footer>
         {% endif %}
         {% if not multi_post %}
+        {% if post.nav_newer or post.nav_older %}
+        <nav>
+            {% if post.nav_newer %}
+            <a href="{{ url_for("show_post", post_id=post.nav_newer.id) }}" class="nav_newer">&larr; {{ post.nav_newer.title }}</a>
+            {% endif %}
+            &nbsp; <!-- need non-absolute element to get full size box -->
+            {% if post.nav_older %}
+            <a href="{{ url_for("show_post", post_id=post.nav_older.id) }}" class="nav_older">{{ post.nav_older.title }} &rarr;</a>
+            {% endif %}
+        </nav>
+        {% endif %}
         <section id="comments">
             <header>
                 <a id="comments"></a>

@@ -374,6 +374,27 @@ def show_post(post_id):
                 "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
                 "id": comment_id
                 })
+        all_posts = g.db.lrange(KEY_BASE+"posts", 0, -1)
+        post_index = all_posts.index(str(post_id))
+        if post_index > 0:
+            next_id = all_posts[post_index-1]
+            print next_id
+            nav_newer = {
+                    "title": g.db.get(KEY_BASE+"post:{0}:title".format(next_id)),
+                    "id": next_id,
+                    }
+        else:
+            nav_newer = None
+
+        if post_index < len(all_posts)-1:
+            prev_id = all_posts[post_index+1]
+            print prev_id
+            nav_older = {
+                    "title": g.db.get(KEY_BASE+"post:{0}:title".format(prev_id)),
+                    "id": prev_id,
+                    }
+        else:
+            nav_older = None
         return render_template("posts.html", title=title,
                 posts=[{
                     "title": title,
@@ -385,6 +406,8 @@ def show_post(post_id):
                     "comments": comments,
                     "num_comments": len(comments),
                     "tags": list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id))),
+                    "nav_newer": nav_newer,
+                    "nav_older": nav_older,
                     }],
                 multi_post=False, comment_error=request.args.get("comment_error", None))
     else:
