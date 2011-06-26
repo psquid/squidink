@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, redirect, url_for, session, request, render_template, g, make_response, escape
+from flask import Flask, redirect, url_for, session, request, render_template, g, make_response, escape, flash
 from redis import Redis
 from hashlib import md5
 import markdown
@@ -312,11 +312,8 @@ def post_comment(post_id):
         else:
             return redirect(url_for("show_post", post_id=post_id, comment_error="Comments cannot be empty.")+"#new-comment")
     else:
-        return render_template("full_page.html", title="Not logged in",
-                page={
-                    "title": "Error",
-                    "body": g.md.convert("You are not logged in. You must login to post comments.")
-                    }), 403
+        flash("You must be logged in to comment.")
+        return redirect(url_for("login", return_to=url_for("show_post", post_id=post_id, comment=request.form["comment"])+"#new-comment"))
 
 @app.route("/post/<int:post_id>/comment/<int:comment_id>/delete", methods=["POST", "GET"])
 def delete_comment(post_id, comment_id):
@@ -409,7 +406,8 @@ def show_post(post_id):
                     "nav_newer": nav_newer,
                     "nav_older": nav_older,
                     }],
-                multi_post=False, comment_error=request.args.get("comment_error", None))
+                multi_post=False, comment_error=request.args.get("comment_error", None),
+                preset_comment=request.args.get("comment", ""))
     else:
         if 0 < post_id < int(g.db.get(KEY_BASE+"post:next_id")):
             return render_template("full_page.html", title="Post deleted",
@@ -678,11 +676,8 @@ def show_config():
     elif g.logged_in:
         return render_template("config.html")
     else:
-        return render_template("full_page.html", title="Not logged in",
-                page={
-                    "title": "Error",
-                    "body": g.md.convert("You're not logged in.")
-                    }), 403
+        flash("You must be logged in to change preferences.")
+        return redirect(url_for("login", return_to=url_for("show_config")))
 
 @app.route("/config/password", methods=['POST','GET'])
 def change_password():

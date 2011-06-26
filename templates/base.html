@@ -28,7 +28,21 @@
                 </ul>
             </ul>
         </nav>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <aside class="flash_message below_navbar">
+            <p>{{messages[0]}}</p>
+        </aside>
+        {% for message in messages[1:] %}
+        <aside class="flash_message">
+            <p>{{message}}</p>
+        </aside>
+        {% endfor %}
         <div id="content">
+        {% else %}
+        <div id="content" class="below_navbar">
+        {% endif %}
+        {% endwith %}
             {% block content_body %}
             {% endblock %}
             {% block sidebar %}

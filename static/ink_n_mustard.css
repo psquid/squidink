@@ -79,7 +79,7 @@ nav ul li a:link, nav ul li a:visited {
     }
 
 #content {
-    margin-top: 62px;
+    margin-top: 20px;
     display: table;
 }
     #posts, #page_wrapper {
@@ -355,3 +355,21 @@ article.post > nav {
     article.post nav .nav_newer {
         float: left;
     }
+
+aside.flash_message {
+    width: 100%;
+    display: table;
+    margin-top: 5px;
+    padding: 8px;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+}
+
+aside.flash_message p {
+    display: table-row;
+}
+
+.below_navbar {
+    margin-top: 62px !important;
+}
