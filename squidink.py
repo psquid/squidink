@@ -78,11 +78,19 @@ def format_comment(comment):
         link_text = matchobj.group(1)
         link_url = matchobj.group(2).replace("&amp;", "&")
         return "<a href=\"{1}\" rel=\"nofollow\">{0}</a>".format(link_text, link_url)
+    def user_link(matchobj):
+        plain_text = matchobj.group(0)
+        username = matchobj.group(1)
+        if g.db.sismember(KEY_BASE+"users", username):
+            return "[{0}]({1})".format(plain_text, "/user/"+username)
+        else:
+            return plain_text
     RE_STRONGEM = re.compile(r"[_*]{3}(.+?)[_*]{3}")
     RE_STRONG = re.compile(r"[_*]{2}(.+?)[_*]{2}")
     RE_EM = re.compile(r"[_*](.+?)[_*]")
     RE_LINK = re.compile(r"\[(.+?)\]\(((http[s]?|/).+?)\)")
     RE_URL = re.compile(r"([^(\[])(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)([^)\]])")  # the opening and closing bits are to avoid matching urls already enclosed in []() links
+    RE_USER = re.compile(r"@(\w+)")
     comment = escape(comment.replace("\r\n", "\n"))
     # split comment into paragraphs
     comment = "<p>"+"</p>\n<p>".join(comment.split("\n\n"))+"</p>\n"
@@ -100,6 +108,8 @@ def format_comment(comment):
     for tag in ["p", "strong", "em"]:
         comment = comment.replace(" <{0}> ".format(tag), "<{0}>".format(tag))
         comment = comment.replace(" </{0}> ".format(tag), "</{0}>".format(tag))
+    # convert @username into user link (but only for existent users)
+    comment = RE_USER.sub(user_link, comment)
     # convert links in [text](url) format into HTML links, also cleaning up any weirdness caused by escape earlier
     comment = RE_LINK.sub(url_clean, comment)
     return comment
