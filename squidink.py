@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, redirect, url_for, session, request, render_template, g, Markup, make_response
+from flask import Flask, redirect, url_for, session, request, render_template, g, make_response, escape
 from redis import Redis
 from hashlib import md5
 import markdown
@@ -74,51 +74,35 @@ def password_hash(password):  # we do this here so we can change the hash method
     return md5(md5(password).hexdigest()).hexdigest()
 
 def format_comment(comment):
-    RE_STRONGEM = re.compile("([_*]{3}.+[_*]{3})")
-    RE_STRONG = re.compile("([_*]{2}.+[_*]{2})")
-    RE_EM = re.compile("([_*].+[_*])")
-    URL_FMT = "<a href=\"{0}\" rel=\"nofollow\">{0}</a>"
-    RE_URL = re.compile("(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)")
-    formatted_comment = Markup("")
-    for para in comment.replace("\r\n", "\n").split("\n\n"):
-        formatted_comment += Markup("<p>")
-        for block in RE_STRONGEM.split(para):
-            if RE_STRONGEM.match(block):
-                formatted_comment += Markup("<strong><em>")
-                for subblock in RE_URL.split(block[3:-3]):
-                    if RE_URL.match(subblock):
-                        formatted_comment += Markup(URL_FMT.format(subblock))
-                    else:
-                        formatted_comment += Markup.escape(subblock)
-                formatted_comment += Markup("</em></strong>")
-            else:
-                for block in RE_STRONG.split(block):
-                    if RE_STRONG.match(block):
-                        formatted_comment += Markup("<strong>")
-                        for subblock in RE_URL.split(block[2:-2]):
-                            if RE_URL.match(subblock):
-                                formatted_comment += Markup(URL_FMT.format(subblock))
-                            else:
-                                formatted_comment += Markup.escape(subblock)
-                        formatted_comment += Markup("</strong>")
-                    else:
-                        for block in RE_EM.split(block):
-                            if RE_EM.match(block):
-                                formatted_comment += Markup("<em>")
-                                for subblock in RE_URL.split(block[1:-1]):
-                                    if RE_URL.match(subblock):
-                                        formatted_comment += Markup(URL_FMT.format(subblock))
-                                    else:
-                                        formatted_comment += Markup.escape(subblock)
-                                formatted_comment += Markup("</em>")
-                            else:
-                                for subblock in RE_URL.split(block):
-                                    if RE_URL.match(subblock):
-                                        formatted_comment += Markup(URL_FMT.format(subblock))
-                                    else:
-                                        formatted_comment += Markup.escape(subblock)
-        formatted_comment += Markup("</p>\n")
-    return formatted_comment
+    def url_clean(matchobj):
+        link_text = matchobj.group(1)
+        link_url = matchobj.group(2).replace("&amp;", "&")
+        return "<a href=\"{1}\" rel=\"nofollow\">{0}</a>".format(link_text, link_url)
+    RE_STRONGEM = re.compile(r"[_*]{3}(.+?)[_*]{3}")
+    RE_STRONG = re.compile(r"[_*]{2}(.+?)[_*]{2}")
+    RE_EM = re.compile(r"[_*](.+?)[_*]")
+    RE_LINK = re.compile(r"\[(.+?)\]\(((http[s]?|/).+?)\)")
+    RE_URL = re.compile(r"[^(\[](http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)[^)\]]")  # the opening and closing bits are to avoid matching urls already enclosed in []() links
+    comment = escape(comment.replace("\r\n", "\n"))
+    # split comment into paragraphs
+    comment = "<p>"+"</p>\n<p>".join(comment.split("\n\n"))+"</p>\n"
+    # apply strong and em formatting
+    comment = RE_STRONGEM.sub("<strong><em>\\1</em></strong>", comment)
+    comment = RE_STRONG.sub("<strong>\\1</strong>", comment)
+    comment = RE_EM.sub("<em>\\1</em>", comment)
+    # add extra spaces to stop RE_URL eating the tags
+    for tag in ["p", "strong", "em"]:
+        comment = comment.replace("<{0}>".format(tag), " <{0}> ".format(tag))
+        comment = comment.replace("</{0}>".format(tag), " </{0}> ".format(tag))
+    # turn bare urls into proper link syntax
+    comment = RE_URL.sub("[\\1](\\1)", comment)
+    # and now remove the spaces
+    for tag in ["p", "strong", "em"]:
+        comment = comment.replace(" <{0}> ".format(tag), "<{0}>".format(tag))
+        comment = comment.replace(" </{0}> ".format(tag), "</{0}>".format(tag))
+    # convert links in [text](url) format into HTML links, also cleaning up any weirdness caused by escape earlier
+    comment = RE_LINK.sub(url_clean, comment)
+    return comment
 
 
 ### POSTS
