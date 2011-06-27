@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from flask import Flask, redirect, url_for, session, request, render_template, g, make_response, escape, flash
 from redis import Redis
-from hashlib import md5
+from hashlib import md5, sha512
 import markdown
 from datetime import datetime
 import random
@@ -70,8 +70,15 @@ def build_nonce(nonce_length=32):
         nonce += random.choice(NONCE_CHARS)
     return nonce
 
-def password_hash(password):  # we do this here so we can change the hash method throughout if necessary
-    return md5(md5(password).hexdigest()).hexdigest()
+def password_hash(password, per_user_salt=None):  # we do this here so we can change the hash method throughout if necessary
+    if per_user_salt is None:  # this user has no salt, due to not having been updated to the new hashing method, so use md5 (user will be moved to new hashing method once they successfully login
+        return md5(md5(password).hexdigest()).hexdigest()
+    else:
+        global_salt = g.db.get(KEY_BASE+"global_salt")
+        if global_salt is None:  # we've never used a global salt before, so we must be hashing/re-hashing a password to store
+            global_salt = build_nonce(64)  # build global salt, which we will then use
+            g.db.set(KEY_BASE+"global_salt", global_salt)  # then store it, so we can get the same salt back later
+        return sha512(password + per_user_salt + global_salt).hexdigest()
 
 def format_comment(comment):
     def url_clean(matchobj):
@@ -579,7 +586,20 @@ def login():
                         error="You have used all your tries, and must wait another {0} minute(s), {1} second(s) before any login attempts on this account will be accepted.".format(min_left, secs_left))
             hashed_stored_pw = g.db.get(KEY_BASE+"users:{0}:hashed_pw".format(request.form["username"].lower()))
             if hashed_stored_pw is not None:
-                hashed_request_pw = password_hash(request.form["password"])
+                per_user_salt = g.db.get(KEY_BASE+"users:{0}:salt".format(request.form["username"].lower()))
+                if per_user_salt is None:  # user's hashing needs to be updated
+                    old_hashed_request_pw = password_hash(request.form["password"])
+                    if old_hashed_request_pw == hashed_stored_pw:  # this is a good login, so update the stored pw
+                        per_user_salt = build_nonce(64)  # generate salt
+                        g.db.set(KEY_BASE+"users:{0}:salt".format(request.form["username"].lower()), per_user_salt)
+                        hashed_request_pw = password_hash(request.form["password"], per_user_salt=per_user_salt)  # generate new pw
+                        g.db.set(KEY_BASE+"users:{0}:hashed_pw".format(request.form["username"].lower()), hashed_request_pw)  # and store it
+                        hashed_stored_pw = hashed_request_pw  # then set stored to it, so login proceeds as normal
+                    else:
+                        hashed_request_pw = ""  # not a valid hash, so the hash check will fail as normal
+                else:
+                    hashed_request_pw = password_hash(request.form["password"], per_user_salt=per_user_salt)
+
                 if hashed_stored_pw == hashed_request_pw:
                     session["username"] = request.form["username"].lower()
                     return redirect(request.form["return_to"])
@@ -683,12 +703,16 @@ def show_config():
 def change_password():
     if request.method == "POST":
         if g.logged_in:
-            old_hash = password_hash(request.form["oldpassword"])
+            per_user_salt = g.db.get(KEY_BASE+"users:{0}:salt".format(g.username))
+            old_hash = password_hash(request.form["oldpassword"], per_user_salt)  # if per_user_salt is None, this falls back to old hash, which is what was stored, so all's well
             stored_hash = g.db.get(KEY_BASE+"users:{0}:hashed_pw".format(g.username))
             if old_hash == stored_hash:
                 new_pass = request.form["newpassword"].strip()
                 if len(new_pass) > 0:
-                    new_hash = password_hash(request.form["newpassword"])
+                    if per_user_salt is None:  # if no salt, we need to generate some before hashing the new password
+                        per_user_salt = build_nonce(64)  # make it
+                        g.db.set(KEY_BASE+"users:{0}:salt".format(g.username), per_user_salt)  # and store it. all done, and hashing can proceed
+                    new_hash = password_hash(request.form["newpassword"], per_user_salt=per_user_salt)
                     g.db.set(KEY_BASE+"users:{0}:hashed_pw".format(g.username), new_hash)
                     return render_template("full_page.html", title="Success",
                             page={
@@ -716,8 +740,10 @@ def new_user():
             password = request.form["password"].strip()
             if len(password) > 0:
                 g.db.sadd(KEY_BASE+"users", username)
+                per_user_salt = build_nonce(64)  # generate salt
+                g.db.set(KEY_BASE+"users:{0}:salt".format(username), per_user_salt)
                 g.db.set(KEY_BASE+"users:{0}:hashed_pw".format(username),
-                        password_hash(request.form["password"]))
+                        password_hash(password, per_user_salt=per_user_salt))
                 if "username" in session:
                     return render_template("full_page.html", title="Success",
                             page={

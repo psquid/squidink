@@ -31,11 +31,11 @@
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <aside class="flash_message below_navbar">
-            <p>{{messages[0]}}</p>
+            {{ g.md.convert(messages[0])|safe }}
         </aside>
         {% for message in messages[1:] %}
         <aside class="flash_message">
-            <p>{{message}}</p>
+            {{ g.md.convert(message)|safe }}
         </aside>
         {% endfor %}
         <div id="content">
