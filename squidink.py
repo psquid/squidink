@@ -80,6 +80,10 @@ def password_hash(password, per_user_salt=None):  # we do this here so we can ch
             g.db.set(KEY_BASE+"global_salt", global_salt)  # then store it, so we can get the same salt back later
         return sha512(password + per_user_salt + global_salt).hexdigest()
 
+def is_valid_entity_name(entity_name):  # checks named entities' (users and pages so far) names for valid characters
+    RE_VALID_CHARS = re.compile(r"[^A-Za-z0-9]")  # valid chars regex
+    return not bool(RE_VALID_CHARS.search(entity_name))
+
 def format_comment(comment):
     def url_clean(matchobj):
         link_text = matchobj.group(1)
@@ -439,11 +443,17 @@ def new_page():
         if request.method == "POST":
             new_page_slug = request.form["slug"].lower().strip()
             if new_page_slug in ["new", "delete", "edit", ""]:
-                return render_template("full_page.html", title="Bad page slug",
-                        page={
-                            "title": "Error",
-                            "body": g.md.convert("Invalid page slug.")
-                            }), 404
+                return render_template("page_post_edit.html",
+                        action_name="Create page", action_url=url_for("new_page"),
+                        is_page=True, error="Invalid page slug.",
+                        preset_title=request.form["title"], preset_body=request.form["body"],
+                        preset_listpage=(request.form.get("list_page", None) is not None))
+            elif not is_valid_entity_name(new_page_slug):
+                return render_template("page_post_edit.html",
+                        action_name="Create page", action_url=url_for("new_page"),
+                        is_page=True, error="Invalid characters in page slug.",
+                        preset_title=request.form["title"], preset_body=request.form["body"],
+                        preset_listpage=(request.form.get("list_page", None) is not None))
             elif not g.db.sismember(KEY_BASE+"pages", new_page_slug):
                 g.db.set(KEY_BASE+"page:{0}:title".format(new_page_slug), request.form["title"])
                 g.db.set(KEY_BASE+"page:{0}:body".format(new_page_slug), request.form["body"])
@@ -452,11 +462,11 @@ def new_page():
                 g.db.sadd(KEY_BASE+"pages", new_page_slug)
                 return redirect(url_for("show_page", page_slug=new_page_slug))
             else:
-                return render_template("full_page.html", title="Bad page slug",
-                        page={
-                            "title": "Error",
-                            "body": g.md.convert("Page slug already in use.")
-                            }), 404
+                return render_template("page_post_edit.html",
+                        action_name="Create page", action_url=url_for("new_page"),
+                        is_page=True, error="Page slug already in use.",
+                        preset_title=request.form["title"], preset_body=request.form["body"],
+                        preset_listpage=(request.form.get("list_page", None) is not None))
         else:
             return render_template("page_post_edit.html",
                     action_name="Create page", action_url=url_for("new_page"),
@@ -736,6 +746,10 @@ def new_user():
             return render_template("login_register.html",
                     action_name="Register", action_url=url_for("new_user"),
                     error="That username is invalid.")
+        elif not is_valid_entity_name(username):
+            return render_template("login_register.html",
+                    action_name="Register", action_url=url_for("new_user"),
+                    error="Username contains invalid characters (alphanumerics only for the username).")
         elif not g.db.sismember(KEY_BASE+"users", username):
             password = request.form["password"].strip()
             if len(password) > 0:
