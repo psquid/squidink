@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import statusnet, json, redis
+import statusnet, json, redis, os
 
 def notice_datetime(notice):  # handle statusnet's time shenanigans
     import datetime, re, locale
