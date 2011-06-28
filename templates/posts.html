@@ -67,7 +67,11 @@
             <article class="comment">
                 <header>
                     <a id="comment-{{ comment.id }}"></a>
+                    {% if comment.type == "statusnet" %}
+                    <p><a href="{{ comment.author_url }}">{{ comment.author }}</a> said, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time>
+                    {% else %}
                     <p><a href="{{ url_for("show_user", username=comment.author) }}">{{ comment.author }}</a> said, at <time datetime="{{comment.timestamp}}">{{ comment.fancytime }}</time>
+                    {% endif %}
                     {% if g.user_is_admin %}
                     | <a href="{{ url_for("delete_comment", post_id=post.id, comment_id=comment.id) }}">delete</a>
                     {% endif %}
@@ -91,6 +95,9 @@
             </form>
             {% else %}
             <p><em>To post a comment, you'll need to <a href="{{ url_for("new_user") }}">get an account</a>.</em></p>
+            {% endif %}
+            {% if post.sn_notice_url %}
+            <p><em>Alternatively, you can comment by replying to <a href="{{ post.sn_notice_url }}">this status.net notice</a>.</em></p>
             {% endif %}
         </section>
         {% endif %}

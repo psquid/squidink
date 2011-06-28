@@ -7,6 +7,7 @@ from datetime import datetime
 import random
 import re
 import PyRSS2Gen
+import json
 try:
     import statusnet
     has_statusnet = True
@@ -19,8 +20,17 @@ app = Flask(__name__)
 
 ## UTILITY FUNCTIONS/VARS
 
-KEY_BASE = "squidink:"  # change this to switch db name; this allows multiple blogs on one redis instance
-FANCY_TIME_FMT = "%H:%M on %a %b %d %Y (UTC)"  # change this to change how times are displayed
+try:
+    config = json.loads(open("config.json", "r").read())
+    KEY_BASE = config["key_base"]
+    FANCY_TIME_FMT = config["fancy_time_fmt"]
+except:
+    KEY_BASE = "squidink:"  # change this to switch default db name; this allows multiple blogs on one redis instance
+    FANCY_TIME_FMT = "%H:%M on %a %b %d %Y (UTC)"  # change this to change how times are displayed by default
+    open("config.json", "w").write(json.dumps({
+        "key_base": KEY_BASE,
+        "fancy_time_fmt": FANCY_TIME_FMT
+        }, sort_keys=True, indent=4))
 
 TIME_FMT = "%Y-%m-%dT%H:%M:%SZ"
 NONCE_CHARS = [chr(c) for c in xrange(ord("A"), ord("Z")+1)]
@@ -246,7 +256,7 @@ def new_post():
                 try:
                     result = g.sn.statuses_update(status, source="SquidInk")
                     try:
-                        g.db.set(KEY_BASE+"post:{0}:sn_notice_id", result["id"])
+                        g.db.set(KEY_BASE+"post:{0}:sn_notice_id".format(new_post_id), result["id"])
                     except KeyError:  # no id, must have been an error response
                         pass  # we'll ignore it. TODO: better handling for error responses
                 except:  # failed to post at all.
@@ -410,13 +420,20 @@ def show_post(post_id):
     if title is not None:
         comments = []
         for comment_id in g.db.lrange(KEY_BASE+"post:{0}:comments".format(post_id), 0, -1):
-            comments.append({
+            comment_type = g.db.get(KEY_BASE+"post:{0}:comment:{1}:type".format(post_id, comment_id)) or "local"
+            comment = {
                 "author": g.db.get(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, comment_id)),
-                "text": format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))),
                 "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
                 "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
-                "id": comment_id
-                })
+                "id": comment_id,
+                "type": comment_type,
+                }
+            if comment_type == "statusnet":
+                comment["author_url"] = g.db.get(KEY_BASE+"post:{0}:comment:{1}:author_url".format(post_id, comment_id))
+                comment["text"] = "<p>{0}</p>".format(escape(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))))  # no special formatting in SN notices, so just escape it and pop it in a <p>
+            else:
+                comment["text"] = format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id)))
+            comments.append(comment)
         all_posts = g.db.lrange(KEY_BASE+"posts", 0, -1)
         post_index = all_posts.index(str(post_id))
         if post_index > 0:
@@ -438,6 +455,14 @@ def show_post(post_id):
                     }
         else:
             nav_older = None
+
+        sn_notice_id = g.db.get(KEY_BASE+"post:{0}:sn_notice_id".format(post_id))
+        sn_api_url = g.db.get(KEY_BASE+"statusnet:api_url")
+        if sn_notice_id is not None and sn_api_url is not None:
+            sn_notice_url = "{0}/{1}".format(sn_api_url.replace("/api", "/notice"), sn_notice_id)
+        else:
+            sn_notice_url = None
+
         return render_template("posts.html", title=title,
                 posts=[{
                     "title": title,
@@ -451,6 +476,7 @@ def show_post(post_id):
                     "tags": list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id))),
                     "nav_newer": nav_newer,
                     "nav_older": nav_older,
+                    "sn_notice_url": sn_notice_url,
                     }],
                 multi_post=False, comment_error=request.args.get("comment_error", None),
                 preset_comment=request.args.get("comment", ""))
