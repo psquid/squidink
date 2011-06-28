@@ -862,14 +862,16 @@ def show_user(username):
         latest_comments = []
         for comment in latest_comments_raw:
             post_id, comment_id = comment.split(":")
-            latest_comments.append({
-                "text": format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))),
-                "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
-                "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
-                "post_title": g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
-                "post_id": post_id,
-                "id": comment_id,
-                })
+            text = g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))
+            if text is not None:  # avoid trying to display deleted comments
+                latest_comments.append({
+                    "text": format_comment(text),
+                    "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
+                    "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
+                    "post_title": g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
+                    "post_id": post_id,
+                    "id": comment_id,
+                    })
         return render_template("user.html", username=username,
                 latest_comments=latest_comments, latest_posts=latest_posts)
     else:
