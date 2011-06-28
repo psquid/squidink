@@ -432,6 +432,7 @@ def show_post(post_id):
                 }
             if comment_type == "statusnet":
                 comment["author_url"] = g.db.get(KEY_BASE+"post:{0}:comment:{1}:author_url".format(post_id, comment_id))
+                comment["notice_url"] = g.db.get(KEY_BASE+"post:{0}:comment:{1}:notice_url".format(post_id, comment_id))
                 comment["text"] = "<p>{0}</p>".format(escape(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))))  # no special formatting in SN notices, so just escape it and pop it in a <p>
             else:
                 comment["text"] = format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id)))

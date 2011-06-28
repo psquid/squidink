@@ -37,6 +37,7 @@ sn_username = db.get(KEY_BASE+"statusnet:username")
 sn_password = db.get(KEY_BASE+"statusnet:password")
 if sn_api_url is not None and sn_username is not None and sn_password is not None:
     sn = statusnet.StatusNet(sn_api_url, sn_username, sn_password)
+    notice_url_template = sn.api_path.replace("/api", "/notice") + "/{0}"
 
 for post_id in list(db.lrange(KEY_BASE+"posts", 0, -1)):
     broadcast_notice_id = db.get(KEY_BASE+"post:{0}:sn_notice_id".format(post_id))  # get the announcement notice
@@ -68,6 +69,7 @@ for post_id in list(db.lrange(KEY_BASE+"posts", 0, -1)):
             db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), notice["text"])
             db.set(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), raw_timestamp.strftime(TIME_FMT))
             db.set(KEY_BASE+"post:{0}:comment:{1}:author_url".format(post_id, new_comment_id), notice["user"]["statusnet_profile_url"])
+            db.set(KEY_BASE+"post:{0}:comment:{1}:notice_url".format(post_id, new_comment_id), notice_url_template.format(notice["id"]))
             db.set(KEY_BASE+"post:{0}:comment:{1}:type".format(post_id, new_comment_id), "statusnet")
             db.rpush(KEY_BASE+"post:{0}:comments".format(post_id), new_comment_id)
 
