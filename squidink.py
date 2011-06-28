@@ -8,6 +8,7 @@ import random
 import re
 import PyRSS2Gen
 import json
+import os
 try:
     import statusnet
     has_statusnet = True
@@ -20,14 +21,15 @@ app = Flask(__name__)
 
 ## UTILITY FUNCTIONS/VARS
 
+config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 try:
-    config = json.loads(open("config.json", "r").read())
+    config = json.loads(open(config_path, "r").read())
     KEY_BASE = config["key_base"]
     FANCY_TIME_FMT = config["fancy_time_fmt"]
 except:
     KEY_BASE = "squidink:"  # change this to switch default db name; this allows multiple blogs on one redis instance
     FANCY_TIME_FMT = "%H:%M on %a %b %d %Y (UTC)"  # change this to change how times are displayed by default
-    open("config.json", "w").write(json.dumps({
+    open(config_path, "w").write(json.dumps({
         "key_base": KEY_BASE,
         "fancy_time_fmt": FANCY_TIME_FMT
         }, sort_keys=True, indent=4))
