@@ -24,7 +24,8 @@ def notice_datetime(notice):  # handle statusnet's time shenanigans
     locale.setlocale(locale.LC_TIME, '') # other half of the hacky fix
     return normalised_datetime
 
-config = json.loads(open("config.json", "r").read())
+config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+config = json.loads(open(config_path, "r").read())
 KEY_BASE = config["key_base"]
 
 TIME_FMT = "%Y-%m-%dT%H:%M:%SZ"
