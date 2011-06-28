@@ -72,5 +72,22 @@
     <p><a href="{{ url_for("show_user", username=username) }}">{{ username }}</a> (<a href="{{ url_for("delete_user", username=username) }}">delete</a>)</p>
     {% endfor %}
 </section>
+{% if g.has_statusnet %}
+<section id="statusnet">
+    <header>
+        <h3>Status.net integration</h3>
+    </header>
+    <form action="{{ url_for("sn_set_credentials", return_to=g.current_url) }}" method="post">
+        <p><label for="sn_api_url">API URL</label>
+        <input type="text" name="sn_api_url" {% if preset_sn_api_url %}value="{{ preset_sn_api_url }}" {% endif %}/></p>
+        <p><label for="sn_username">Username</label>
+        <input type="text" name="sn_username" {% if preset_sn_username %}value="{{ preset_sn_username }}" {% endif %}/></p>
+        <p><label for="sn_password">Password</label>
+        <input type="password" name="sn_password" {% if preset_sn_password %}value="{{ preset_sn_password }}" {% endif %}/></p>
+        <p><label for="submit"></label>
+        <button type="submit" name="submit">Set credentials</button></p>
+    </form>
+</section>
+{% endif %}
 {% endif %}
 {% endblock %}

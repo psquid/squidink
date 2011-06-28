@@ -7,6 +7,13 @@ from datetime import datetime
 import random
 import re
 import PyRSS2Gen
+try:
+    import statusnet
+    has_statusnet = True
+except ImportError:
+    import sys
+    sys.stderr.write("No statusnet module present. This instance of SquidInk will not emit new post updates to status.net.")
+    has_statusnet = False
 app = Flask(__name__)
 
 
@@ -22,6 +29,7 @@ NONCE_CHARS.extend([chr(c) for c in xrange(ord("0"), ord("9")+1)])
 
 @app.before_request
 def prepare_globals():
+    g.has_statusnet = has_statusnet
     g.db = Redis()
     g.md = markdown.Markdown(safe_mode=True)
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
@@ -59,6 +67,16 @@ def prepare_globals():
         g.user_is_admin = True
     else:
         g.user_is_admin = False
+    g.sn = None
+    if g.has_statusnet and g.user_is_admin:  # don't bother setting up the object in non-admin sessions, since it won't be used anyway
+        sn_api_url = g.db.get(KEY_BASE+"statusnet:api_url")
+        sn_username = g.db.get(KEY_BASE+"statusnet:username")
+        sn_password = g.db.get(KEY_BASE+"statusnet:password")
+        if sn_api_url is not None and sn_username is not None and sn_password is not None:
+            try:
+                g.sn = statusnet.StatusNet(sn_api_url, sn_username, sn_password)
+            except:
+                pass
 
 @app.route("/favicon.ico")
 def redirect_favicon():
@@ -216,6 +234,23 @@ def new_post():
                 g.db.sadd(KEY_BASE+"post:{0}:tags".format(new_post_id), tag)
                 g.db.zadd(KEY_BASE+"tag:{0}:posts".format(tag), new_post_id, new_post_id)  # add post_id to tag's post sorted list, with itself as the key
             g.db.lpush(KEY_BASE+"posts", new_post_id)
+            if g.sn:
+                preamble = "New blog post:"
+                post_url = url_for("show_post", post_id=new_post_id, _external=True)
+                title = request.form["title"].strip()
+                if g.sn.length_limit != 0:
+                    remaining_len = 140 - (len(preamble) + len(post_url) + 2)
+                    if len(title) > remaining_len:
+                        title = title[:remaining_len-3].rstrip() + "..."
+                status = "{0} {1} {2}".format(preamble, title, post_url)
+                try:
+                    result = g.sn.statuses_update(status, source="SquidInk")
+                    try:
+                        g.db.set(KEY_BASE+"post:{0}:sn_notice_id", result["id"])
+                    except KeyError:  # no id, must have been an error response
+                        pass  # we'll ignore it. TODO: better handling for error responses
+                except:  # failed to post at all.
+                    pass  # ignore that, too.
             return redirect(url_for("show_post", post_id=new_post_id))
         else:
             return render_template("page_post_edit.html",
@@ -702,7 +737,10 @@ def show_config():
                     "slug": page_slug
                     })
         return render_template("config.html", users=list(g.db.smembers(KEY_BASE+"users")),
-                unlisted_pages=unlisted_pages)
+                unlisted_pages=unlisted_pages,
+                preset_sn_api_url=g.db.get(KEY_BASE+"statusnet:api_url"),
+                preset_sn_username=g.db.get(KEY_BASE+"statusnet:username"),
+                preset_sn_password=g.db.get(KEY_BASE+"statusnet:password"))
     elif g.logged_in:
         return render_template("config.html")
     else:
@@ -855,6 +893,38 @@ def delete_user(username):
                     "body": g.md.convert("You are not allowed to delete this user.")
                     }), 403
 
+
+### STATUS.NET INTEGRATION
+
+@app.route("/statusnet/config", methods=['POST'])
+def sn_set_credentials():
+    if g.user_is_admin:
+        sn_api_url = request.form["sn_api_url"].strip()
+        sn_username = request.form["sn_username"].strip().lower()
+        sn_password = request.form["sn_password"].strip()
+
+        if sn_api_url != "":
+            g.db.set(KEY_BASE+"statusnet:api_url", sn_api_url)
+        else:
+            g.db.delete(KEY_BASE+"statusnet:api_url")
+
+        if sn_username != "":
+            g.db.set(KEY_BASE+"statusnet:username", sn_username)
+        else:
+            g.db.delete(KEY_BASE+"statusnet:username")
+
+        if sn_password != "":
+            g.db.set(KEY_BASE+"statusnet:password", sn_password)
+        else:
+            g.db.delete(KEY_BASE+"statusnet:password")
+
+        return redirect(request.args.get("return_to", url_for("show_config")))
+    else:
+        return render_template("full_page.html", title="Not allowed",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You are not allowed to change status.net access credentials.")
+                    }), 403
 
 if __name__ == "__main__":
     app.secret_key = ",j\x16!|5@\x8a\xe6&tLt\xd3\xd7\x00s\xaa[|\x89\xee\xe7-"  # required for session use
