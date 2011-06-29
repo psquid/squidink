@@ -162,17 +162,29 @@ def format_comment(comment):
 @app.route("/posts/<int:page_num>")
 def show_posts(page_num=1):
     posts_per_page = int(request.args.get("per_page", 10))
-    tag = request.args.get("tag", "")
+    tag = request.args.get("tags", "")
+    tag_combine_method = request.args.get("combine", "all")
+    if tag_combine_method not in ["any", "all"]:
+        tag_combine_method = "all"
 
     if tag != "":
-        post_ids = [int(id) for id in g.db.zrevrange(KEY_BASE+"tag:{0}:posts".format(tag), 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
+        tags = tag.split(":")
+        post_ids = set([int(id) for id in g.db.zrange(KEY_BASE+"tag:{0}:posts".format(tags[0]), 0, -1)])
+        if len(tags) > 1:  # if that wasn't the only tag
+            for tag in tags:
+                new_post_ids = set([int(id) for id in g.db.zrange(KEY_BASE+"tag:{0}:posts".format(tag), 0, -1)])
+                if tag_combine_method == "all":
+                    post_ids &= new_post_ids
+                elif tag_combine_method == "any":
+                    post_ids |= new_post_ids
+        post_ids = sorted(list(post_ids), reverse=True)[0+(posts_per_page*(page_num-1)):posts_per_page+(posts_per_page*(page_num-1))]
     else:
         post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0+(posts_per_page*(page_num-1)), (posts_per_page-1)+(posts_per_page*(page_num-1)))]
 
     posts = []
 
     persist_args = {}
-    for arg_name in ["per_page", "tag"]:
+    for arg_name in ["per_page", "tag", "combine"]:
         if arg_name in request.args:
             persist_args[arg_name] = request.args[arg_name]
 
@@ -204,10 +216,22 @@ def show_posts(page_num=1):
 @app.route("/rss")
 def rss_posts():
     posts_per_page = int(request.args.get("per_page", 10))
-    tag = request.args.get("tag", "")
+    tag = request.args.get("tags", "")
+    tag_combine_method = request.args.get("combine", "all")
+    if tag_combine_method not in ["any", "all"]:
+        tag_combine_method = "all"
 
     if tag != "":
-        post_ids = [int(id) for id in g.db.zrevrange(KEY_BASE+"tag:{0}:posts".format(tag), 0, posts_per_page-1)]
+        tags = tag.split(":")
+        post_ids = set([int(id) for id in g.db.zrange(KEY_BASE+"tag:{0}:posts".format(tags[0]), 0, -1)])
+        if len(tags) > 1:  # if that wasn't the only tag
+            for tag in tags:
+                new_post_ids = set([int(id) for id in g.db.zrange(KEY_BASE+"tag:{0}:posts".format(tag), 0, -1)])
+                if tag_combine_method == "all":
+                    post_ids &= new_post_ids
+                elif tag_combine_method == "any":
+                    post_ids |= new_post_ids
+        post_ids = sorted(list(post_ids), reverse=True)[0:posts_per_page]
     else:
         post_ids = [int(id) for id in g.db.lrange(KEY_BASE+"posts", 0, posts_per_page-1)]
 
@@ -239,12 +263,13 @@ def new_post():
             new_post_id = g.db.incr(KEY_BASE+"post:next_id")
             g.db.set(KEY_BASE+"post:{0}:title".format(new_post_id), request.form["title"])
             g.db.set(KEY_BASE+"post:{0}:body".format(new_post_id), request.form["body"])
-            g.db.set(KEY_BASE+"post:{0}:author".format(new_post_id), session["username"])
+            g.db.set(KEY_BASE+"post:{0}:author".format(new_post_id), g.username)
             g.db.set(KEY_BASE+"post:{0}:timestamp".format(new_post_id), datetime.utcnow().strftime(TIME_FMT))
             tags = [tag.strip().lower() for tag in request.form["tags"].replace(":","").split(",") if tag != ""]
             for tag in tags:
                 g.db.sadd(KEY_BASE+"post:{0}:tags".format(new_post_id), tag)
                 g.db.zadd(KEY_BASE+"tag:{0}:posts".format(tag), new_post_id, new_post_id)  # add post_id to tag's post sorted list, with itself as the key
+            g.db.lpush(KEY_BASE+"users:{0}:posts".format(g.username), new_post_id)
             g.db.lpush(KEY_BASE+"posts", new_post_id)
             if g.sn:
                 preamble = "New blog post:"
@@ -321,6 +346,11 @@ def delete_post(post_id):
                 confirm_nonce = request.form["confirm_nonce"]
                 stored_nonce = g.db.get(KEY_BASE+"post:{0}:delete_nonce".format(post_id))
                 if confirm_nonce == stored_nonce:
+                    tags = list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id)))
+                    for tag in tags:  # remove this post from tag lists it was in
+                        g.db.zrem(KEY_BASE+"tag:{0}:posts".format(tag), post_id)
+                    author = g.db.get(KEY_BASE+"post:{0}:author".format(post_id))
+                    g.db.lrem(KEY_BASE+"users:{0}:posts".format(author), post_id)
                     for key in g.db.keys(KEY_BASE+"post:{0}:*".format(post_id)):
                         g.db.delete(key)
                     g.db.lrem(KEY_BASE+"posts", post_id, 0)
