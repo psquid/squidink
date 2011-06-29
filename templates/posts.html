@@ -98,7 +98,7 @@
                 <button type="submit" name="submit">Post comment</button>
             </form>
             {% else %}
-            <p><em>To post a comment, you'll need to <a href="{{ url_for("new_user") }}">get an account</a>.</em></p>
+            <p><em>To post a comment, you'll need to <a href="{{ url_for("new_user", return_to=g.current_url) }}">get an account</a> or <a href="{{ url_for("login", return_to=g.current_url) }}">login</a>.</em></p>
             {% endif %}
             {% if post.sn_notice_url %}
             <p><em>Alternatively, you can comment by replying to <a href="{{ post.sn_notice_url }}">this status.net notice</a>.</em></p>
