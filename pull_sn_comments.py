@@ -57,7 +57,13 @@ for post_id in list(db.lrange(KEY_BASE+"posts", 0, -1)):
         else:
             mentions_page += 1
 
+    done_ids = set()
+
     for notice in full_mentions[::-1]:  # run through them backwards so we get them in chronological order
+        if str(notice["id"]) in done_ids:
+            continue
+        else:
+            done_ids.add(str(notice["id"]))
         if str(notice["id"]) == str(last_checked_notice_id):  # this notice was the last checked one
             continue  # ignore it so we don't get duplicates
         if str(notice.get("in_reply_to_status_id", None)) == str(broadcast_notice_id):
