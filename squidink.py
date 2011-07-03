@@ -136,7 +136,7 @@ def prepare_globals():
 def tidy_response(response):  # do some general housekeeping of the response
     if g.new_session_cookie_data is not None:
         new_session_cookie = SecureCookie(g.new_session_cookie_data, app.secret_key)
-        response.set_cookie("saved_session", new_session_cookie.serialize())
+        response.set_cookie("saved_session", new_session_cookie.serialize(), max_age=int(30*24*60*60))
     return response
 
 @app.route("/favicon.ico")
