@@ -85,7 +85,7 @@ def prepare_globals():
                                 "series": series,
                                 "token": new_token
                                 }
-                        g.db.set(KEY_BASE+"users:{0}:session:{1}:next_token".format(username, series), new_token)
+                        g.db.setex(KEY_BASE+"users:{0}:session:{1}:next_token".format(username, series), new_token, 40*24*60*60)
                     else:  # We got a valid series, but wrong ID. Statistically it's pretty unlikely the series and username will be correct, but token wrong, unless the cookie is old (I think it would be prudent to assume this may be because it was stolen, à la Firesheep).
                         g.db.delete(KEY_BASE+"users:{0}:sessions".format(username))  # assume the worst, and invalidate all saved sessions
                         for key in g.db.keys(KEY_BASE+"users:{0}:session:*".format(username)):
@@ -763,7 +763,7 @@ def login():
                                 "token": token
                                 }
                         g.db.sadd(KEY_BASE+"users:{0}:sessions".format(session["username"]), series)
-                        g.db.set(KEY_BASE+"users:{0}:session:{1}:next_token".format(session["username"], series), token)
+                        g.db.setex(KEY_BASE+"users:{0}:session:{1}:next_token".format(session["username"], series), token, 40*24*60*60)
                     return redirect(request.form["return_to"])
                 else:
                     trues = g.db.incr(KEY_BASE+"users:{0}:pw_tries".format(request.form["username"].lower()))
@@ -929,7 +929,7 @@ def new_user():
                                 "token": token
                                 }
                         g.db.sadd(KEY_BASE+"users:{0}:sessions".format(session["username"]), series)
-                        g.db.set(KEY_BASE+"users:{0}:session:{1}:next_token".format(session["username"], series), token)
+                        g.db.setex(KEY_BASE+"users:{0}:session:{1}:next_token".format(session["username"], series), token, 40*24*60*60)
                     return redirect(request.form["return_to"])
             else:
                 return render_template("login_register.html",
