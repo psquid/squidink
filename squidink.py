@@ -1,5 +1,23 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2011 Psychedelic Squid <psquid@psquid.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+# 
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from flask import Flask, redirect, url_for, session, request, render_template, g, make_response, escape, flash
+from werkzeug.contrib.securecookie import SecureCookie
 from redis import Redis
 from hashlib import md5, sha512
 import markdown
@@ -45,12 +63,36 @@ def prepare_globals():
     g.db = Redis()
     g.md = markdown.Markdown(safe_mode=True)
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
+    g.new_session_cookie_data = None  # this won't be set unless it's needed
     if "username" in session:
         g.username = session["username"]
         g.logged_in = True
     else:
-        g.username = ""
-        g.logged_in = False
+        valid_session = False
+        if "saved_session" in request.cookies:
+            saved_session = SecureCookie.unserialize(request.cookies["saved_session"], app.secret_key)
+            username, series, token = saved_session["user"], saved_session["series"], saved_session["token"]
+            if g.db.sismember(KEY_BASE+"users", username):
+                if g.db.sismember(KEY_BASE+"users:{0}:sessions".format(username), series):
+                    if token == g.db.get(KEY_BASE+"users:{0}:session:{1}:next_token".format(username, series)):
+                        g.username = username
+                        session["username"] = username
+                        g.logged_in = True
+                        valid_session = True
+                        new_token = build_nonce(32)
+                        g.new_session_cookie_data = {
+                                "user": username,
+                                "series": series,
+                                "token": new_token
+                                }
+                        g.db.set(KEY_BASE+"users:{0}:session:{1}:next_token".format(username, series), new_token)
+                    else:  # We got a valid series, but wrong ID. Statistically it's pretty unlikely the series and username will be correct, but token wrong, unless the cookie is old (I think it would be prudent to assume this may be because it was stolen, à la Firesheep).
+                        g.db.delete(KEY_BASE+"users:{0}:sessions".format(username))  # assume the worst, and invalidate all saved sessions
+                        for key in g.db.keys(KEY_BASE+"users:{0}:session:*".format(username)):
+                            g.db.delete(key)
+        if not valid_session:
+            g.username = ""
+            g.logged_in = False
     g.nav = [
         {"text": "Home", "href": "/"},
         ]
@@ -89,6 +131,13 @@ def prepare_globals():
                 g.sn = statusnet.StatusNet(sn_api_url, sn_username, sn_password)
             except:
                 pass
+
+@app.after_request
+def tidy_response(response):  # do some general housekeeping of the response
+    if g.new_session_cookie_data is not None:
+        new_session_cookie = SecureCookie(g.new_session_cookie_data, app.secret_key)
+        response.set_cookie("saved_session", new_session_cookie.serialize())
+    return response
 
 @app.route("/favicon.ico")
 def redirect_favicon():
@@ -706,6 +755,15 @@ def login():
 
                 if hashed_stored_pw == hashed_request_pw:
                     session["username"] = request.form["username"].lower()
+                    if request.form.get("remember_me", None) is not None:  # if remember_me checked, generate a saved session
+                        series, token = build_nonce(32), build_nonce(32)
+                        g.new_session_cookie_data = {
+                                "user": session["username"],
+                                "series": series,
+                                "token": token
+                                }
+                        g.db.sadd(KEY_BASE+"users:{0}:sessions".format(session["username"]), series)
+                        g.db.set(KEY_BASE+"users:{0}:session:{1}:next_token".format(session["username"], series), token)
                     return redirect(request.form["return_to"])
                 else:
                     trues = g.db.incr(KEY_BASE+"users:{0}:pw_tries".format(request.form["username"].lower()))
@@ -863,6 +921,15 @@ def new_user():
                             })
                 else:
                     session["username"] = username
+                    if request.form.get("remember_me", None) is not None:  # if remember_me checked, generate a saved session
+                        series, token = build_nonce(32), build_nonce(32)
+                        g.new_session_cookie_data = {
+                                "user": session["username"],
+                                "series": series,
+                                "token": token
+                                }
+                        g.db.sadd(KEY_BASE+"users:{0}:sessions".format(session["username"]), series)
+                        g.db.set(KEY_BASE+"users:{0}:session:{1}:next_token".format(session["username"], series), token)
                     return redirect(request.form["return_to"])
             else:
                 return render_template("login_register.html",
