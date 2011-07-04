@@ -1,4 +1,4 @@
-div.code { font-family: Anonymous Pro, monospace; }
+div.code { font-family: Anonymous Pro, monospace; margin-top: 5px; }
 .hll { background-color: #49483e }
 .c { color: #75715e } /* Comment */
 .err { color: #960050; background-color: #1e0010 } /* Error */

@@ -228,9 +228,9 @@ class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted 
             except ValueError:
                 lexer = pygments.lexers.TextLexer()
             code_block = pygments.highlight(match.group(2), lexer, self.formatter)
-            code_block = code_block.replace("\n\n", "\n&nbsp;\n").replace("\n", "<br />")
-            return "\n\n<div class=\"code\">{0}</div>\n\n".format(code_block)
-        return self.codeblock_pattern.sub(pygmentize_block, lines)
+            code_block = code_block.replace("\n\n", "\n&nbsp;\n")
+            return "<div class=\"code\">{0}</div>".format(code_block)
+        return self.codeblock_pattern.sub(pygmentize_block, lines.strip()).replace("</p>","").replace("<p>","")
 
 
 ### POSTS
