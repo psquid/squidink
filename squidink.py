@@ -69,9 +69,9 @@ def prepare_globals():
     g.has_statusnet = has_statusnet
     g.has_pygments = has_pygments
     g.db = Redis()
-    g.md = markdown.Markdown(safe_mode="escape")
+    g.md = markdown.Markdown()
     if g.has_pygments:
-        g.md.postprocessors.insert(0, "pygmentize", CodeBlockPygmentizer())
+        g.md.parser.blockprocessors.insert(0, "pygmentize", CodeBlockPygmentizer())
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
     g.new_session_cookie_data = None  # this won't be set unless it's needed
     if "username" in session:
@@ -216,10 +216,13 @@ def format_comment(comment):
 
 class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted from the Pygments team's preprocessor <https://bitbucket.org/birkenfeld/pygments-main/src/7c7374e6ba50/external/markdown-processor.py>
     codeblock_pattern = re.compile(r"\[code(|:.+?)\](.+?)\[/code\]", re.S)
-    empty_para_pattern = re.compile(r"<p>[\s\n]*?</p>")
 
-    def run(self, lines):
+    def test(self, parent, block):
+        return block.strip().startswith("[code")
+
+    def run(self, parent, blocks):
         formatter = pygments.formatters.HtmlFormatter(noclasses=False)
+        combined_blocks = []
         def pygmentize_block(match):
             try:
                 if match.group(1) == "":
@@ -228,10 +231,13 @@ class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted 
                     lexer = pygments.lexers.get_lexer_by_name(match.group(1)[1:])
             except ValueError:
                 lexer = pygments.lexers.TextLexer()
-            code_block = pygments.highlight(match.group(2), lexer, formatter)
-            code_block = code_block.replace("\n\n", "\n&nbsp;\n")
+            code_block = pygments.highlight(match.group(2).rstrip(), lexer, formatter).replace("\n\n", "\n&nbsp;\n").replace("\n", "<br />")
+            code_block = code_block.replace("</div><br />", "</div>")
             return "<div class=\"code\">{0}</div>".format(code_block)
-        return self.empty_para_pattern.sub("", self.codeblock_pattern.sub(pygmentize_block, lines.strip()))
+        while self.codeblock_pattern.search("\n".join(combined_blocks)) is None:
+            combined_blocks.append(blocks.pop(0))
+            print combined_blocks
+        g.md.parser.parseChunk(parent, self.codeblock_pattern.sub(pygmentize_block, "\n\n".join(combined_blocks).strip()))
 
 
 ### POSTS
