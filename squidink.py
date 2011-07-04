@@ -1060,6 +1060,7 @@ def sn_set_credentials():
                     "body": g.md.convert("You are not allowed to change status.net access credentials.")
                     }), 403
 
+
 if __name__ == "__main__":
     app.secret_key = ",j\x16!|5@\x8a\xe6&tLt\xd3\xd7\x00s\xaa[|\x89\xee\xe7-"  # required for session use
     app.debug = True
