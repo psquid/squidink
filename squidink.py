@@ -216,9 +216,9 @@ def format_comment(comment):
 
 class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted from the Pygments team's preprocessor <https://bitbucket.org/birkenfeld/pygments-main/src/7c7374e6ba50/external/markdown-processor.py>
     codeblock_pattern = re.compile(r"\[code(|:.+?)\](.+?)\[/code\]", re.S)
-    formatter = pygments.formatters.HtmlFormatter(noclasses=False)
 
     def run(self, lines):
+        formatter = pygments.formatters.HtmlFormatter(noclasses=False)
         def pygmentize_block(match):
             try:
                 if match.group(1) == "":
@@ -227,7 +227,7 @@ class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted 
                     lexer = pygments.lexers.get_lexer_by_name(match.group(1)[1:])
             except ValueError:
                 lexer = pygments.lexers.TextLexer()
-            code_block = pygments.highlight(match.group(2), lexer, self.formatter)
+            code_block = pygments.highlight(match.group(2), lexer, formatter)
             code_block = code_block.replace("\n\n", "\n&nbsp;\n")
             return "<div class=\"code\">{0}</div>".format(code_block)
         return self.codeblock_pattern.sub(pygmentize_block, lines.strip()).replace("</p>","").replace("<p>","")
