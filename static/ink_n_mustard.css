@@ -10,7 +10,7 @@ header, footer, nav, aside, article {
 body {
     margin: 0 auto;
     width: 900px;
-    font: 13px/150% Cantarell, Helvetica, Arial, sans-serif;
+    font: 13px/150% Maven Pro, Helvetica, Arial, sans-serif;
     background: #1f1f1f;
     color: #e0e0e0;
     overflow-y: scroll;
@@ -218,7 +218,8 @@ p, img {
 
 code, pre {
     padding-bottom: 5px;
-    font: 12px/150% Inconsolata, monospace;
+    font: 13px/150% Anonymous Pro, monospace;
+    color: #a0a0a0;
 }
 
 blockquote, q {
