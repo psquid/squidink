@@ -4,6 +4,9 @@
         {% block head %}
         <title>{% block title %}{{ g.site_name }}{% endblock %}</title>
         <link rel="stylesheet" href="{{ url_for("static", filename="ink_n_mustard.css") }}" media="screen" />
+        {% if g.has_pygments %}
+        <link rel="stylesheet" href="{{ url_for("static", filename="pygments.css") }}" media="screen" />
+        {% endif %}
         <link href='https://fonts.googleapis.com/css?family=Maven+Pro:regular,bold&v1' rel='stylesheet' type='text/css'>
         <link href='https://fonts.googleapis.com/css?family=Anonymous+Pro:regular,italic,bold,bolditalic&v1' rel='stylesheet' type='text/css'>
         <link rel="alternate" type="application/rss+xml" title="{{ g.site_name }}" href="{{ url_for("rss_posts") }}" />

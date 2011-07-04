@@ -34,6 +34,13 @@ except ImportError:
     import sys
     sys.stderr.write("No statusnet module present. This instance of SquidInk will not emit new post updates to status.net.")
     has_statusnet = False
+try:
+    import pygments, pygments.lexers, pygments.formatters
+    has_pygments = True
+except ImportError:
+    import sys
+    sys.stderr.write("Pygments not present. This instance of SquidInk will not do smart code highlighting.")
+    has_pygments = False
 app = Flask(__name__)
 
 
@@ -60,8 +67,11 @@ NONCE_CHARS.extend([chr(c) for c in xrange(ord("0"), ord("9")+1)])
 @app.before_request
 def prepare_globals():
     g.has_statusnet = has_statusnet
+    g.has_pygments = has_pygments
     g.db = Redis()
-    g.md = markdown.Markdown(safe_mode=True)
+    g.md = markdown.Markdown(safe_mode="escape")
+    if g.has_pygments:
+        g.md.postprocessors.insert(0, "pygmentize", CodeBlockPygmentizer())
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
     g.new_session_cookie_data = None  # this won't be set unless it's needed
     if "username" in session:
@@ -203,6 +213,24 @@ def format_comment(comment):
     # convert links in [text](url) format into HTML links, also cleaning up any weirdness caused by escape earlier
     comment = RE_LINK.sub(url_clean, comment)
     return comment
+
+class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted from the Pygments team's preprocessor <https://bitbucket.org/birkenfeld/pygments-main/src/7c7374e6ba50/external/markdown-processor.py>
+    codeblock_pattern = re.compile(r"\[code(|:.+?)\](.+?)\[/code\]", re.S)
+    formatter = pygments.formatters.HtmlFormatter(noclasses=False)
+
+    def run(self, lines):
+        def pygmentize_block(match):
+            try:
+                if match.group(1) == "":
+                    lexer = pygments.lexers.TextLexer()
+                else:
+                    lexer = pygments.lexers.get_lexer_by_name(match.group(1)[1:])
+            except ValueError:
+                lexer = pygments.lexers.TextLexer()
+            code_block = pygments.highlight(match.group(2), lexer, self.formatter)
+            code_block = code_block.replace("\n\n", "\n&nbsp;\n").replace("\n", "<br />")
+            return "\n\n<div class=\"code\">{0}</div>\n\n".format(code_block)
+        return self.codeblock_pattern.sub(pygmentize_block, lines)
 
 
 ### POSTS
