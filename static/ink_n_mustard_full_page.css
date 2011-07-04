@@ -1,5 +1,7 @@
 #posts, #page_wrapper {
     display: table-cell;
-    width: 900px;
+    width: 900px !important;
+    min-width: 900px !important;
+    max-width: 900px !important;
     padding-right: 0px;
 }

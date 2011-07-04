@@ -84,7 +84,9 @@ nav ul li a:link, nav ul li a:visited {
 }
     #posts, #page_wrapper {
         display: table-cell;
-        width: 610px;
+        width: 590px;
+        min-width: 590px !important;
+        max-width: 590px;
         padding-right: 20px;
     }
 

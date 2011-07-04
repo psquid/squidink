@@ -5,6 +5,9 @@ div.code {
     border-radius: 5px;
     -moz-border-radius: 5px;
     -webkit-border-radius: 5px;
+    max-width: 530px;
+    margin-top: 0;  margin-right: 0;
+    overflow-x: auto;
 }
 .hll { background-color: #ffffcc }
 .c { color: #465457 } /* Comment */
