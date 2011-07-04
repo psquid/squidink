@@ -793,6 +793,12 @@ def login():
 def logout():
     if g.logged_in:
         del session["username"]
+        if "saved_session" in request.cookies:  # invalidate whatever saved session might exist, so we don't get logged into it as soon as we log out
+            saved_session = SecureCookie.unserialize(request.cookies["saved_session"], app.secret_key)
+            series = saved_session["series"]
+            g.db.srem(KEY_BASE+"users:{0}:sessions".format(g.username), series)
+            for key in g.db.keys(KEY_BASE+"users:{0}:session:{1}:*".format(g.username, series)):
+                g.db.delete(key)
         return redirect(request.args.get("return_to", url_for("show_posts")))
     else:
         return render_template("full_page.html", title="Not logged in",
