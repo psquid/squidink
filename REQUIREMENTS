@@ -7,3 +7,7 @@ are also required:
     PyRSS2Gen
     markdown
     flask
+
+The following packages are recommended, but not necessary (the functions they provide will simply be disabled if they're not present):
+    statusnet (from IdentiCurse, or alternatively an interface-compatible module)
+    pygments
