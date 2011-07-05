@@ -236,7 +236,6 @@ class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted 
             return "<div class=\"code\">{0}</div>".format(code_block)
         while self.codeblock_pattern.search("\n".join(combined_blocks)) is None:
             combined_blocks.append(blocks.pop(0))
-            print combined_blocks
         g.md.parser.parseChunk(parent, self.codeblock_pattern.sub(pygmentize_block, "\n\n".join(combined_blocks).strip()))
 
 
