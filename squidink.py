@@ -170,7 +170,7 @@ def password_hash(password, per_user_salt=None):  # we do this here so we can ch
         return sha512(password + per_user_salt + global_salt).hexdigest()
 
 def is_valid_entity_name(entity_name):  # checks named entities' (users and pages so far) names for valid characters
-    RE_VALID_CHARS = re.compile(r"[^A-Za-z0-9]")  # valid chars regex
+    RE_VALID_CHARS = re.compile(r"[^A-Za-z0-9_\-]")  # valid chars regex
     return not bool(RE_VALID_CHARS.search(entity_name))
 
 def format_comment(comment):
@@ -660,7 +660,7 @@ def edit_page(page_slug):
     if g.user_is_admin:
         if g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)) is not None:
             if request.method == "POST":
-                if request.form["slug"].lower() != page_slug.lower():
+                if request.form["slug"].lower() != page_slug.lower() and is_valid_entity_name(request.form["slug"].lower()) and not request.form["slug"].lower() in ["new", "edit", "delete"]:
                     g.db.delete(KEY_BASE+"page:{0}:title".format(page_slug))
                     g.db.delete(KEY_BASE+"page:{0}:body".format(page_slug))
                     g.db.srem(KEY_BASE+"pages", page_slug)
