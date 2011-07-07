@@ -232,6 +232,8 @@ class CodeBlockPygmentizer(markdown.blockprocessors.BlockProcessor):  # adapted 
             except ValueError:
                 lexer = pygments.lexers.TextLexer()
             code_block = pygments.highlight(match.group(2).rstrip(), lexer, formatter).replace("\n\n", "\n&nbsp;\n").replace("\n", "<br />")
+            for original, substitution in {"_": "&#95;", "*": "&#42;"}.items():
+                code_block = code_block.replace(original, substitution)
             code_block = code_block.replace("</div><br />", "</div>")
             return "<div class=\"code\">{0}</div>".format(code_block)
         while self.codeblock_pattern.search("\n".join(combined_blocks)) is None:
