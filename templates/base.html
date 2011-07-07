@@ -12,15 +12,6 @@
         <link rel="alternate" type="application/rss+xml" title="{{ g.site_name }}" href="{{ url_for("rss_posts") }}" />
         <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" />
         <meta charset="UTF-8">
-        <script type="text/javascript">
-            window.onload = function() {
-                setTimeout(function() {
-                        // preload images
-                        new Image().src = "/static/feed-icon_invert.png";
-                        new Image().src = "/static/config-icon_invert.png";
-                        });
-            }
-        </script>
         {% endblock %}
     </head>
     <body>
@@ -92,5 +83,9 @@
             <p>This blog is powered by <a href="https://gitorious.org/squidink">SquidInk</a>. All content is available under the <a href="http://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA</a> license unless otherwise stated.</p>
             {% endblock %}
         </footer>
+        <div id="preload-images">
+            <img src="/static/feed-icon_invert.png" width="1" height="1" />
+            <img src="/static/config-icon_invert.png" width="1" height="1" />
+        </div>
     </body>
 </html>

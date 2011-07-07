@@ -376,3 +376,11 @@ aside.flash_message p {
 .below_navbar {
     margin-top: 62px !important;
 }
+
+/* image preloading magic */
+@media projection, screen {
+     div#preload-images { position: absolute; left: -8000px; top: -8000px; }
+     div#preload-images img { display:block; }
+}
+
+@media print { div#preload-images { display: none; } }
