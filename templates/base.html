@@ -12,6 +12,15 @@
         <link rel="alternate" type="application/rss+xml" title="{{ g.site_name }}" href="{{ url_for("rss_posts") }}" />
         <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" />
         <meta charset="UTF-8">
+        <script type="text/javascript">
+            window.onload = function() {
+                setTimeout(function() {
+                        // preload images
+                        new Image().src = "/static/feed-icon_invert.png";
+                        new Image().src = "/static/config-icon_invert.png";
+                        });
+            }
+        </script>
         {% endblock %}
     </head>
     <body>
