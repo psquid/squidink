@@ -69,9 +69,6 @@ def prepare_globals():
     g.has_statusnet = has_statusnet
     g.has_pygments = has_pygments
     g.db = Redis()
-    g.md = markdown.Markdown()
-    if g.has_pygments:
-        g.md.parser.blockprocessors.insert(0, "pygmentize", CodeBlockPygmentizer())
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
     g.new_session_cookie_data = None  # this won't be set unless it's needed
     if "username" in session:
@@ -129,6 +126,9 @@ def prepare_globals():
     g.current_url = request.path
     if g.db.sismember(KEY_BASE+"admins", g.username):
         g.user_is_admin = True
+        g.md = markdown.Markdown()
+        if g.has_pygments:
+            g.md.parser.blockprocessors.insert(0, "pygmentize", CodeBlockPygmentizer())
     else:
         g.user_is_admin = False
     g.sn = None
@@ -286,7 +286,7 @@ def show_posts(page_num=1):
     for id in post_ids:
         posts.append({
             "title": g.db.get(KEY_BASE+"post:{0}:title".format(id)),
-            "body": g.md.convert(g.db.get(KEY_BASE+"post:{0}:body".format(id))),
+            "body": g.db.get(KEY_BASE+"post:{0}:body".format(id)),
             "author": g.db.get(KEY_BASE+"post:{0}:author".format(id)),
             "timestamp": g.db.get(KEY_BASE+"post:{0}:timestamp".format(id)),
             "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(id)), TIME_FMT).strftime(FANCY_TIME_FMT),
@@ -327,7 +327,7 @@ def rss_posts():
                 PyRSS2Gen.RSSItem(
                     title = g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
                     link = url_for("show_post", post_id=post_id),
-                    description = g.md.convert(g.db.get(KEY_BASE+"post:{0}:body".format(post_id))),
+                    description = g.db.get(KEY_BASE+"post:{0}:body".format(post_id)),
                     guid = PyRSS2Gen.Guid(url_for("show_post", post_id=post_id)),
                     pubDate = datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)), TIME_FMT)
                     )
@@ -347,7 +347,8 @@ def new_post():
         if request.method == "POST":
             new_post_id = g.db.incr(KEY_BASE+"post:next_id")
             g.db.set(KEY_BASE+"post:{0}:title".format(new_post_id), request.form["title"])
-            g.db.set(KEY_BASE+"post:{0}:body".format(new_post_id), request.form["body"])
+            g.db.set(KEY_BASE+"post:{0}:body".format(new_post_id), g.md.convert(request.form["body"]))
+            g.db.set(KEY_BASE+"post:{0}:source".format(new_post_id), request.form["body"])
             g.db.set(KEY_BASE+"post:{0}:author".format(new_post_id), g.username)
             g.db.set(KEY_BASE+"post:{0}:timestamp".format(new_post_id), datetime.utcnow().strftime(TIME_FMT))
             tags = [tag.strip().lower() for tag in request.form["tags"].replace(":","").split(",") if tag != ""]
@@ -391,7 +392,8 @@ def edit_post(post_id):
         if g.db.get(KEY_BASE+"post:{0}:title".format(post_id)) is not None:
             if request.method == "POST":
                 g.db.set(KEY_BASE+"post:{0}:title".format(post_id), request.form["title"])
-                g.db.set(KEY_BASE+"post:{0}:body".format(post_id), request.form["body"])
+                g.db.set(KEY_BASE+"post:{0}:body".format(post_id), g.md.convert(request.form["body"]))
+                g.db.set(KEY_BASE+"post:{0}:source".format(post_id), request.form["body"])
                 g.db.set(KEY_BASE+"post:{0}:edit_timestamp".format(post_id), datetime.utcnow().strftime(TIME_FMT))
                 new_tags = [tag.strip().lower() for tag in request.form["tags"].replace(":","").split(",") if tag != ""]
                 old_tags = list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id)))
@@ -408,7 +410,7 @@ def edit_post(post_id):
                         action_name="Edit post", action_url=url_for("edit_post", post_id=post_id),
                         is_page=False,
                         preset_title=g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
-                        preset_body=g.db.get(KEY_BASE+"post:{0}:body".format(post_id)),
+                        preset_body=g.db.get(KEY_BASE+"post:{0}:source".format(post_id)),
                         preset_tags=", ".join(list(g.db.smembers(KEY_BASE+"post:{0}:tags".format(post_id)))))
         else:
             return render_template("full_page.html", title="Post not found",
@@ -477,7 +479,7 @@ def post_comment(post_id):
         if request.form["comment"].strip() != "":
             new_comment_id = g.db.incr(KEY_BASE+"post:{0}:comment:next_id".format(post_id))
             g.db.set(KEY_BASE+"post:{0}:comment:{1}:author".format(post_id, new_comment_id), g.username)
-            g.db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), request.form["comment"])
+            g.db.set(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, new_comment_id), format_comment(request.form["comment"]))
             g.db.set(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, new_comment_id), datetime.utcnow().strftime(TIME_FMT))
             g.db.rpush(KEY_BASE+"post:{0}:comments".format(post_id), new_comment_id)
             g.db.lpush(KEY_BASE+"users:{0}:comments".format(g.username), "{0}:{1}".format(post_id, new_comment_id))
@@ -550,7 +552,7 @@ def show_post(post_id):
                 comment["notice_url"] = g.db.get(KEY_BASE+"post:{0}:comment:{1}:notice_url".format(post_id, comment_id))
                 comment["text"] = "<p>{0}</p>".format(escape(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))))  # no special formatting in SN notices, so just escape it and pop it in a <p>
             else:
-                comment["text"] = format_comment(g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id)))
+                comment["text"] = g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))
             comments.append(comment)
         all_posts = g.db.lrange(KEY_BASE+"posts", 0, -1)
         post_index = all_posts.index(str(post_id))
@@ -584,7 +586,7 @@ def show_post(post_id):
         return render_template("posts.html", title=title,
                 posts=[{
                     "title": title,
-                    "body": g.md.convert(g.db.get(KEY_BASE+"post:{0}:body".format(post_id))),
+                    "body": g.db.get(KEY_BASE+"post:{0}:body".format(post_id)),
                     "author": g.db.get(KEY_BASE+"post:{0}:author".format(post_id)),
                     "timestamp": g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)),
                     "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:timestamp".format(post_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
@@ -635,7 +637,8 @@ def new_page():
                         preset_listpage=(request.form.get("list_page", None) is not None))
             elif not g.db.sismember(KEY_BASE+"pages", new_page_slug):
                 g.db.set(KEY_BASE+"page:{0}:title".format(new_page_slug), request.form["title"])
-                g.db.set(KEY_BASE+"page:{0}:body".format(new_page_slug), request.form["body"])
+                g.db.set(KEY_BASE+"page:{0}:body".format(new_page_slug), g.md.convert(request.form["body"]))
+                g.db.set(KEY_BASE+"page:{0}:source".format(new_page_slug), request.form["body"])
                 if request.form.get("list_page", None) is None:
                     g.db.set(KEY_BASE+"page:{0}:skip_listing".format(new_page_slug), True)
                 g.db.sadd(KEY_BASE+"pages", new_page_slug)
@@ -665,11 +668,13 @@ def edit_page(page_slug):
                 if request.form["slug"].lower() != page_slug.lower() and is_valid_entity_name(request.form["slug"].lower()) and not request.form["slug"].lower() in ["new", "edit", "delete"]:
                     g.db.delete(KEY_BASE+"page:{0}:title".format(page_slug))
                     g.db.delete(KEY_BASE+"page:{0}:body".format(page_slug))
+                    g.db.delete(KEY_BASE+"page:{0}:source".format(page_slug))
                     g.db.srem(KEY_BASE+"pages", page_slug)
                     page_slug = request.form["slug"]
                     g.db.sadd(KEY_BASE+"pages", page_slug)
                 g.db.set(KEY_BASE+"page:{0}:title".format(page_slug), request.form["title"])
-                g.db.set(KEY_BASE+"page:{0}:body".format(page_slug), request.form["body"])
+                g.db.set(KEY_BASE+"page:{0}:body".format(page_slug), g.md.convert(request.form["body"]))
+                g.db.set(KEY_BASE+"page:{0}:source".format(page_slug), request.form["body"])
                 if request.form.get("list_page", None) is not None:
                     g.db.delete(KEY_BASE+"page:{0}:skip_listing".format(page_slug))
                 else:
@@ -681,7 +686,7 @@ def edit_page(page_slug):
                         is_page=True,
                         preset_title=g.db.get(KEY_BASE+"page:{0}:title".format(page_slug)),
                         preset_slug=page_slug, preset_listpage=(g.db.get(KEY_BASE+"page:{0}:skip_listing".format(page_slug)) is None),
-                        preset_body=g.db.get(KEY_BASE+"page:{0}:body".format(page_slug)))
+                        preset_body=g.db.get(KEY_BASE+"page:{0}:source".format(page_slug)))
         else:
             return render_template("full_page.html", title="Page not found",
                     page={
@@ -745,7 +750,7 @@ def show_page(page_slug):
         return render_template("page.html", title=title,
                 page={
                     "title": title,
-                    "body": g.md.convert(g.db.get(KEY_BASE+"page:{0}:body".format(page_slug))),
+                    "body": g.db.get(KEY_BASE+"page:{0}:body".format(page_slug)),
                     "slug": page_slug
                     })
     else:
