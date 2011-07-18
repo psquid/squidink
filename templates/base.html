@@ -42,7 +42,7 @@
                     }
 
                     var noticeListItem = document.createElement("li")
-                    noticeListItem.innerHTML = notice_body + " (<a href=\"http://{{g.sn_domain|safe}}/notice/" + notice_id + "\">" + notice_age + "</a>)"
+                    noticeListItem.innerHTML = "<p>" + notice_body + "</p><p class=\"right\"><a href=\"http://{{g.sn_domain|safe}}/notice/" + notice_id + "\">" + notice_age + "</a></p>"
                     noticeList.appendChild(noticeListItem)
                 }
             }
