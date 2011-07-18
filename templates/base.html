@@ -12,6 +12,42 @@
         <link rel="alternate" type="application/rss+xml" title="{{ g.site_name }}" href="{{ url_for("rss_posts") }}" />
         <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" />
         <meta charset="UTF-8">
+        {% if g.sn_username %}
+        <script type="text/javascript">
+            function populateSNSidebar(notices) {
+                var notLoadedMessage = document.getElementById("snNotLoaded")
+                var noticeList = document.createElement("ul")
+                notLoadedMessage.parentNode.replaceChild(noticeList, notLoadedMessage)
+                for (var i = 0 ; i < notices.length ; i++) {
+                    var notice_id = notices[i].id
+                    var notice_body = notices[i].statusnet_html
+                    var notice_timestamp = new Date(notices[i].created_at).getTime()
+                    var notice_timediffSeconds = Math.round((new Date().getTime() - notice_timestamp) / 1000)
+                    if (notice_timediffSeconds == 1) {
+                        var notice_age = "1 second ago"
+                    } else if (notice_timediffSeconds < 60) {
+                        var notice_age = notice_timediffSeconds + " seconds ago"
+                    } else if (notice_timediffSeconds < 1.5*60) {
+                        var notice_age = "1 minute ago"
+                    } else if (notice_timediffSeconds < 60*60) {
+                        var notice_age = Math.round(notice_timediffSeconds / 60) + " minutes ago"
+                    } else if (notice_timediffSeconds < 1.5*60*60) {
+                        var notice_age = "1 hour ago"
+                    } else if (notice_timediffSeconds < 24*60*60) {
+                        var notice_age = Math.round(notice_timediffSeconds / (60*60)) + " hours ago"
+                    } else if (notice_timediffSeconds < 1.5*24*60*60) {
+                        var notice_age = "1 day ago"
+                    } else {
+                        var notice_age = Math.round(notice_timediffSeconds / (24*60*60)) + " days ago"
+                    }
+
+                    var noticeListItem = document.createElement("li")
+                    noticeListItem.innerHTML = notice_body + " (<a href=\"http://{{g.sn_domain|safe}}/notice/" + notice_id + "\">" + notice_age + "</a>)"
+                    noticeList.appendChild(noticeListItem)
+                }
+            }
+        </script>
+        {% endif %}
         {% endblock %}
     </head>
     <body>
@@ -64,6 +100,15 @@
                     </ul>
                 </section>
             {% endfor %}
+                {% if g.sn_username %}
+                <section id="statusnetLatest">
+                    <header>
+                        <h3>Latest {{g.sn_domain}} posts</h3>
+                    </header>
+                    <p id="snNotLoaded">Not loaded yet. If you have javascript disabled, you will have to enable it (or make an exception, if using NoScript or similar) if you want to see this.</p>
+                </section>
+                <script type="text/javascript" src="http://identi.ca/api/statuses/user_timeline/{{g.sn_username}}.json?callback=populateSNSidebar&count=5"></script>
+                {% endif %}
             </aside>
             {% endblock %}
             {% block topbar %}

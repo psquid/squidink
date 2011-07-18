@@ -132,15 +132,18 @@ def prepare_globals():
     else:
         g.user_is_admin = False
     g.sn = None
-    if g.has_statusnet and g.user_is_admin:  # don't bother setting up the object in non-admin sessions, since it won't be used anyway
+    if g.has_statusnet:
         sn_api_url = g.db.get(KEY_BASE+"statusnet:api_url")
-        sn_username = g.db.get(KEY_BASE+"statusnet:username")
-        sn_password = g.db.get(KEY_BASE+"statusnet:password")
-        if sn_api_url is not None and sn_username is not None and sn_password is not None:
-            try:
-                g.sn = statusnet.StatusNet(sn_api_url, sn_username, sn_password)
-            except:
-                pass
+        if sn_api_url is not None:
+            g.sn_username = g.db.get(KEY_BASE+"statusnet:username")
+            g.sn_domain = sn_api_url.replace("https://", "").replace("http://", "").replace("/api", "")
+            if g.user_is_admin:  # don't bother setting up the whole object in non-admin sessions, since it won't be used anyway
+                sn_password = g.db.get(KEY_BASE+"statusnet:password")
+                if g.sn_username is not None and sn_password is not None:
+                    try:
+                        g.sn = statusnet.StatusNet(sn_api_url, g.sn_username, sn_password)
+                    except:
+                        pass
 
 @app.after_request
 def tidy_response(response):  # do some general housekeeping of the response
