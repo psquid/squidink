@@ -93,6 +93,7 @@ nav ul li a:link, nav ul li a:visited {
     aside#sidebar {
         display: table-cell;
         width: 270px;
+        max-width: 270px;
         padding: 8px 20px 5px;
         border-radius: 10px;
         -moz-border-radius: 10px;
