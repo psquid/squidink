@@ -100,7 +100,7 @@ nav ul li a:link, nav ul li a:visited {
         -webkit-border-radius: 10px;
     }
 
-    aside#sidebar ul.links, aside#sidebar ul.statusnetLatest {
+    aside#sidebar ul.links, aside#sidebar ul#statusnetLatest {
         list-style: none;
     }
 
