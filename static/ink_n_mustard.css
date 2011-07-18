@@ -102,6 +102,7 @@ nav ul li a:link, nav ul li a:visited {
 
     aside#sidebar ul.links, aside#sidebar #statusnetLatest ul {
         list-style: none;
+        word-wrap: break-word;
     }
 
     aside#topbar {
