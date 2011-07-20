@@ -22,5 +22,6 @@ It's written in Python, so you'll need that. Any 2.x-series version later than
 * flask
 
 The following Python packages are recommended, but not necessary; the functions they provide will simply be disabled if they're not present:
+
 * statusnet (from IdentiCurse, or alternatively a different module with the same interface)
 * pygments
