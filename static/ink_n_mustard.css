@@ -10,7 +10,7 @@ header, footer, nav, aside, article {
 body {
     margin: 0 auto;
     width: 900px;
-    font: 13px/150% Maven Pro, Helvetica, Arial, sans-serif;
+    font: 15px/150% Maven Pro, Helvetica, Arial, sans-serif;
     background: #1f1f1f;
     color: #e0e0e0;
     overflow-y: scroll;
@@ -68,8 +68,8 @@ nav ul ul.nav_right li.config a:hover {
 
 nav ul li a:link, nav ul li a:visited {
     display: block;
-    padding: 8px 14px;
-    font-size: 15px;
+    padding: 7px 14px;
+    font-size: 17px;
     font-weight: bold;
     line-height: 175%;
 }
@@ -126,7 +126,7 @@ article.post:not(:first-child), #posts nav {
     margin-top: 18px;
 }
     article.post header p, article.page header p {
-       font-size: 11px; 
+       font-size: 13px; 
        color: #808080;
        line-height: 100%;
        padding: 0 0 12px;
