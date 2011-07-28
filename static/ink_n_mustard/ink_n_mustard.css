@@ -50,18 +50,18 @@ nav ul ul.nav_right li a {
     background-position: center;
 }
 nav ul ul.nav_right li.rss a {
-    background-image: url("/static/feed-icon.png");
+    background-image: url("/static/ink_n_mustard/feed-icon.png");
 }
 nav ul ul.nav_right li.rss a:hover {
-    background-image: url("/static/feed-icon_invert.png") !important;
+    background-image: url("/static/ink_n_mustard/feed-icon_invert.png") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
 }
 nav ul ul.nav_right li.config a {
-    background-image: url("/static/config-icon.png");
+    background-image: url("/static/ink_n_mustard/config-icon.png");
 }
 nav ul ul.nav_right li.config a:hover {
-    background-image: url("/static/config-icon_invert.png") !important;
+    background-image: url("/static/ink_n_mustard/config-icon_invert.png") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
 }
