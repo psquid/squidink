@@ -265,7 +265,7 @@ form {
 }
 
 form > p {
-    width: 75%;
+    width: 70%;
     padding: 2px 0;
     display: table-row;
 }
@@ -275,7 +275,7 @@ form label {
     text-align: right;
     vertical-align: top;
     padding: 0 7px 0 0;
-    width: 15%;
+    width: 20%;
 }
 
 input:not([type="checkbox"]), select, textarea, button {
