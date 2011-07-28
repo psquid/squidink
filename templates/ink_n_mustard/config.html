@@ -36,6 +36,24 @@
     {% endfor %}
     {% endif %}
 </section>
+<section id="theme_config">
+    <header>
+        <h3>Theme</h3>
+    </header>
+    {% if theme_error %}
+    <p class="error">{{ theme_error }}</p>
+    {% endif %}
+    <form action="{{ url_for("change_theme", return_to=g.current_url) }}" method="post">
+        <p><label for="theme_path">Theme</label>
+        <select name="theme_path">
+            {% for theme_path in g.themes %}
+            <option value="{{ theme_path }}">{{ g.themes[theme_path] }}</option>
+            {% endfor %}
+        </select></p>
+        <p><label for="submit"></label>
+        <button type="submit" name="submit">Change theme</button></p>
+    </form>
+</section>
 <section id="sidebar_config">
     <header>
         <h3>Sidebar</h3>

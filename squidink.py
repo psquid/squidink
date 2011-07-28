@@ -27,6 +27,7 @@ import re
 import PyRSS2Gen
 import json
 import os
+import glob
 try:
     import statusnet
     has_statusnet = True
@@ -71,6 +72,18 @@ def prepare_globals():
     g.db = Redis()
     g.site_name = g.db.get(KEY_BASE+"sitename") or "Unnamed SquidInk app"
     g.theme = g.db.get(KEY_BASE+"theme") or "ink_n_mustard"
+    g.themes = {}
+    for theme_dir in glob.glob(os.path.join("templates", "*")):
+        theme_basename = os.path.basename(theme_dir)
+        details_path = os.path.join(theme_dir, "details.json")
+        if os.path.exists(details_path):
+            theme_details = json.loads(open(details_path).read())
+        else:
+            theme_details = {}
+        if "title" in theme_details:
+            g.themes[theme_basename] = theme_details["title"]
+        else:
+            g.themes[theme_basename] = theme_basename
     g.new_session_cookie_data = None  # this won't be set unless it's needed
     if "username" in session:
         g.username = session["username"]
@@ -155,7 +168,7 @@ def tidy_response(response):  # do some general housekeeping of the response
 
 @app.route("/favicon.ico")
 def redirect_favicon():
-    return redirect(url_for("static", filename="favicon.ico"))
+    return redirect(url_for("static", filename=os.path.join(g.theme, "favicon.ico")))
 
 def build_nonce(nonce_length=32):
     nonce = ""
@@ -1103,6 +1116,29 @@ def sn_set_credentials():
                 page={
                     "title": "Error",
                     "body": g.md.convert("You are not allowed to change status.net access credentials.")
+                    }), 403
+
+
+### THEMING
+
+@app.route("/theme/change", methods=['POST'])
+def change_theme():
+    if g.user_is_admin:
+        theme_path = request.form["theme_path"].lower().strip()
+        if theme_path in g.themes:
+            g.db.set(KEY_BASE+"theme", theme_path)
+            return redirect(request.args.get("return_to", url_for("show_config")))
+        else:
+            return render_template(os.path.join(g.theme, "full_page.html"), title="No such theme.",
+                    page={
+                        "title": "Error",
+                        "body": g.md.convert("No such theme exists. Maybe it was deleted?")
+                        }), 404
+    else:
+        return render_template(os.path.join(g.theme, "full_page.html"), title="Not allowed",
+                page={
+                    "title": "Error",
+                    "body": g.md.convert("You are not allowed to add change themes.")
                     }), 403
 
 
