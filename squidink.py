@@ -1026,7 +1026,7 @@ def show_user(username):
             text = g.db.get(KEY_BASE+"post:{0}:comment:{1}:text".format(post_id, comment_id))
             if text is not None:  # avoid trying to display deleted comments
                 latest_comments.append({
-                    "text": format_comment(text),
+                    "text": text,
                     "timestamp": g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)),
                     "fancytime": datetime.strptime(g.db.get(KEY_BASE+"post:{0}:comment:{1}:timestamp".format(post_id, comment_id)), TIME_FMT).strftime(FANCY_TIME_FMT),
                     "post_title": g.db.get(KEY_BASE+"post:{0}:title".format(post_id)),
